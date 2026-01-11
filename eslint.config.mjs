@@ -14,12 +14,20 @@ export default antfu({
     quotes: 'single',
   },
 
+  // Enable CSS/SCSS formatting
+  formatters: {
+    css: true,
+    html: true,
+  },
+
   // Parse .gitignore to get ignores
   gitignore: true,
 
   ignores: [
     'src-tauri',
   ],
+
+  unocss: true,
 
   rules: {
     '@typescript-eslint/no-empty-object-type': 0,
