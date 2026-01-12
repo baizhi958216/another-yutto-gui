@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import Button from '@/components/common/Button.vue'
 import Card from '@/components/common/Card.vue'
 import Input from '@/components/common/Input.vue'
@@ -11,7 +11,31 @@ const downloadStore = useDownloadStore()
 const presetsStore = usePresetsStore()
 const { submitDownload } = useDownload()
 
-const url = ref('')
+// Sync URL with store to persist across route changes
+const url = ref(downloadStore.currentUrl)
+
+// Watch store changes and update local ref
+watch(() => downloadStore.currentUrl, (newUrl) => {
+  url.value = newUrl
+})
+
+// Compute available quality options from videoInfo or use defaults
+const qualityOptions = computed(() => {
+  if (downloadStore.videoInfo?.available_qualities && downloadStore.videoInfo.available_qualities.length > 0) {
+    return downloadStore.videoInfo.available_qualities
+  }
+  // Default quality options if not available from backend
+  return [
+    { quality: 127, description: '8K 超高清' },
+    { quality: 126, description: '杜比视界' },
+    { quality: 125, description: 'HDR 真彩' },
+    { quality: 120, description: '4K 超清' },
+    { quality: 116, description: '1080P 60帧' },
+    { quality: 112, description: '1080P 高码率' },
+    { quality: 80, description: '1080P 高清' },
+    { quality: 64, description: '720P 高清' },
+  ]
+})
 
 async function handleFetchInfo() {
   if (url.value) {
@@ -27,6 +51,13 @@ async function handleSubmit() {
   await submitDownload()
   // Keep the URL and video info visible after adding to queue
 }
+
+// Restore URL from store on mount
+onMounted(() => {
+  if (downloadStore.currentUrl) {
+    url.value = downloadStore.currentUrl
+  }
+})
 </script>
 
 <template>
@@ -88,29 +119,12 @@ async function handleSubmit() {
               v-model="downloadStore.currentConfig.videoQuality"
               class="input-base"
             >
-              <option :value="127">
-                8K 超高清
-              </option>
-              <option :value="126">
-                杜比视界
-              </option>
-              <option :value="125">
-                HDR 真彩
-              </option>
-              <option :value="120">
-                4K 超清
-              </option>
-              <option :value="116">
-                1080P 60帧
-              </option>
-              <option :value="112">
-                1080P 高码率
-              </option>
-              <option :value="80">
-                1080P 高清
-              </option>
-              <option :value="64">
-                720P 高清
+              <option
+                v-for="option in qualityOptions"
+                :key="option.quality"
+                :value="option.quality"
+              >
+                {{ option.description }}
               </option>
             </select>
           </div>

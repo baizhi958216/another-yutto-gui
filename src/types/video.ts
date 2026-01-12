@@ -11,6 +11,12 @@ export interface VideoInfo {
     face: string
   }
   episodes?: Episode[]
+  available_qualities?: QualityOption[]
+}
+
+export interface QualityOption {
+  quality: number
+  description: string
 }
 
 export interface Episode {

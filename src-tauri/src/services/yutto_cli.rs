@@ -140,6 +140,7 @@ impl YuttoCli {
                 face: owner_face,
             },
             episodes: None,
+            available_qualities: None,
         })
     }
 

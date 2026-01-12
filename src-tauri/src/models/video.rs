@@ -11,6 +11,13 @@ pub struct VideoInfo {
     pub description: String,
     pub owner: Owner,
     pub episodes: Option<Vec<Episode>>,
+    pub available_qualities: Option<Vec<QualityOption>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QualityOption {
+    pub quality: i32,
+    pub description: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

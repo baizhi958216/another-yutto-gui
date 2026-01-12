@@ -29,4 +29,5 @@ rusqlite = { version = "0.31", features = ["bundled"] }
 regex = "1"
 thiserror = "1"
 quick-xml = "0.36"
+reqwest = { version = "0.12", features = ["json"] }
 
