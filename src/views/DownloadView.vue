@@ -37,6 +37,19 @@ const qualityOptions = computed(() => {
   ]
 })
 
+// Compute available audio quality options from videoInfo or use defaults
+const audioQualityOptions = computed(() => {
+  if (downloadStore.videoInfo?.available_audio_qualities && downloadStore.videoInfo.available_audio_qualities.length > 0) {
+    return downloadStore.videoInfo.available_audio_qualities
+  }
+  // Default audio quality options if not available from backend
+  return [
+    { quality: 30280, description: 'Hi-Res无损' },
+    { quality: 30232, description: '132K' },
+    { quality: 30216, description: '64K' },
+  ]
+})
+
 async function handleFetchInfo() {
   if (url.value) {
     await downloadStore.fetchVideoInfo(url.value)
@@ -121,6 +134,24 @@ onMounted(() => {
             >
               <option
                 v-for="option in qualityOptions"
+                :key="option.quality"
+                :value="option.quality"
+              >
+                {{ option.description }}
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label class="text-sm text-text-primary font-medium mb-2 block">
+              音频质量
+            </label>
+            <select
+              v-model="downloadStore.currentConfig.audioQuality"
+              class="input-base"
+            >
+              <option
+                v-for="option in audioQualityOptions"
                 :key="option.quality"
                 :value="option.quality"
               >

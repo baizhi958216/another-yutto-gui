@@ -141,6 +141,7 @@ impl YuttoCli {
             },
             episodes: None,
             available_qualities: None,
+            available_audio_qualities: None,
         })
     }
 
