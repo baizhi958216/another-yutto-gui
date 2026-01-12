@@ -4,8 +4,8 @@ import Button from '@/components/common/Button.vue'
 import Card from '@/components/common/Card.vue'
 import ProgressBar from '@/components/common/ProgressBar.vue'
 import { useDownload } from '@/composables/useDownload'
-import { useQueueStore } from '@/stores/queue'
 import { useTaskPolling } from '@/composables/useTaskPolling'
+import { useQueueStore } from '@/stores/queue'
 
 const queueStore = useQueueStore()
 const { pauseDownload, resumeDownload, cancelDownload } = useDownload()
@@ -36,6 +36,71 @@ function getStatusColor(status: string) {
     error: 'text-error',
   }
   return colorMap[status] || 'text-text-secondary'
+}
+
+// 格式化视频质量显示
+function formatVideoQuality(quality: number): string {
+  const qualityMap: Record<number, string> = {
+    127: '8K',
+    126: '杜比视界',
+    125: 'HDR',
+    120: '4K',
+    116: '1080P60',
+    112: '1080P+',
+    100: '智能修复',
+    80: '1080P',
+    74: '720P60',
+    64: '720P',
+    32: '480P',
+    16: '360P',
+  }
+  return qualityMap[quality] || `${quality}P`
+}
+
+// 格式化音频质量显示
+function formatAudioQuality(quality: number): string {
+  const qualityMap: Record<number, string> = {
+    30251: 'Hi-Res',
+    30255: '杜比音效',
+    30250: '杜比全景声',
+    30280: '320K',
+    30232: '132K',
+    30216: '64K',
+  }
+  return qualityMap[quality] || `${quality}`
+}
+
+// 获取下载参数标签
+function getDownloadTags(task: any): string[] {
+  const tags: string[] = []
+
+  if (task.config.videoOnly) {
+    tags.push('仅视频')
+  }
+  else if (task.config.audioOnly) {
+    tags.push('仅音频')
+  }
+
+  // 添加质量信息
+  if (!task.config.audioOnly) {
+    tags.push(formatVideoQuality(task.config.videoQuality))
+  }
+  if (!task.config.videoOnly) {
+    tags.push(formatAudioQuality(task.config.audioQuality))
+  }
+
+  // 添加其他选项
+  if (task.config.withDanmaku) {
+    tags.push('弹幕')
+  }
+  if (task.config.withSubtitle) {
+    tags.push('字幕')
+  }
+  if (task.config.withCover) {
+    tags.push('封面')
+  }
+
+  return tags
 }
 </script>
 
@@ -89,6 +154,18 @@ function getStatusColor(status: string) {
             <h3 class="text-base text-text-primary font-semibold mb-1 truncate">
               {{ task.videoInfo?.title || '未知视频' }}
             </h3>
+
+            <!-- 下载参数标签 -->
+            <div class="flex flex-wrap gap-1 mb-2">
+              <span
+                v-for="tag in getDownloadTags(task)"
+                :key="tag"
+                class="text-xs bg-bg-tertiary text-text-secondary px-2 py-0.5 rounded"
+              >
+                {{ tag }}
+              </span>
+            </div>
+
             <div class="text-sm text-text-secondary mb-2 flex gap-4 items-center">
               <span :class="getStatusColor(task.status)">
                 {{ getStatusText(task.status) }}

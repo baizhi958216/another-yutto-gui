@@ -58,7 +58,7 @@ export const useQueueStore = defineStore('queue', () => {
       tasks.value = [
         ...tasks.value.slice(0, index),
         newTask,
-        ...tasks.value.slice(index + 1)
+        ...tasks.value.slice(index + 1),
       ]
 
       console.log(`[Queue Store] 更新任务 ${id.substring(0, 8)}: progress=${updates.progress?.toFixed(1)}%, speed=${updates.speed}`)

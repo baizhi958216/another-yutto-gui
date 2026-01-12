@@ -23,7 +23,7 @@ watch(() => props.progress, (newVal, oldVal) => {
     </div>
     <div class="rounded-full bg-gray-200 h-2 w-full overflow-hidden">
       <div
-        class="h-full transition-all duration-300 ease-out bg-primary-500"
+        class="bg-primary-500 h-full transition-all duration-300 ease-out"
         :style="{ width: `${progressPercent}%` }"
       />
     </div>

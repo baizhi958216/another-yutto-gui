@@ -93,6 +93,14 @@ impl DownloadManager {
             cmd.arg("--no-cover");
         }
 
+        // Add video-only or audio-only flags
+        if config.video_only.unwrap_or(false) {
+            cmd.arg("--video-only");
+        }
+        if config.audio_only.unwrap_or(false) {
+            cmd.arg("--audio-only");
+        }
+
         // Log the command being executed
         println!("[下载管理器] 开始下载任务 {}", task_id);
         println!("[下载管理器] URL: {}", config.url);

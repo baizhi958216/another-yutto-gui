@@ -12,6 +12,8 @@ pub struct DownloadConfig {
     pub with_subtitle: bool,
     pub with_cover: bool,
     pub batch: bool,
+    pub video_only: Option<bool>,
+    pub audio_only: Option<bool>,
     pub episodes: Option<String>,
     pub sessdata: Option<String>,
 }

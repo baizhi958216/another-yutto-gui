@@ -2,7 +2,7 @@ import type { DownloadConfig, VideoInfo } from '@/types'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { ApiService } from '@/services/api'
-import { validateBilibiliUrl, normalizeBilibiliUrl } from '@/utils/validate'
+import { normalizeBilibiliUrl, validateBilibiliUrl } from '@/utils/validate'
 import { useSettingsStore } from './settings'
 
 export const useDownloadStore = defineStore('download', () => {
@@ -57,15 +57,37 @@ export const useDownloadStore = defineStore('download', () => {
       defaultPath = './'
     }
 
+    // 选择可用的最高视频质量
+    let defaultVideoQuality = 80 // 默认1080P
+    if (videoInfo.value?.available_qualities && videoInfo.value.available_qualities.length > 0) {
+      // 找到第一个可用的质量（列表已按质量从高到低排序）
+      const firstAvailable = videoInfo.value.available_qualities.find(q => q.available)
+      if (firstAvailable) {
+        defaultVideoQuality = firstAvailable.quality
+      }
+    }
+
+    // 选择可用的最高音频质量
+    let defaultAudioQuality = 30280 // 默认320kbps
+    if (videoInfo.value?.available_audio_qualities && videoInfo.value.available_audio_qualities.length > 0) {
+      // 找到第一个可用的质量（列表已按质量从高到低排序）
+      const firstAvailable = videoInfo.value.available_audio_qualities.find(q => q.available)
+      if (firstAvailable) {
+        defaultAudioQuality = firstAvailable.quality
+      }
+    }
+
     currentConfig.value = {
       url,
-      videoQuality: 80,
-      audioQuality: 30280,
+      videoQuality: defaultVideoQuality,
+      audioQuality: defaultAudioQuality,
       downloadPath: defaultPath,
       withDanmaku: true,
       withSubtitle: true,
       withCover: true,
       batch: false,
+      videoOnly: false,
+      audioOnly: false,
     }
   }
 

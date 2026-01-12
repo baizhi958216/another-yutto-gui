@@ -1,7 +1,7 @@
+import type { DownloadTask } from '@/types'
+import { invoke } from '@tauri-apps/api/core'
 import { onMounted, onUnmounted } from 'vue'
 import { useQueueStore } from '@/stores/queue'
-import { invoke } from '@tauri-apps/api/core'
-import type { DownloadTask } from '@/types'
 
 /**
  * 任务轮询组合式函数
@@ -20,7 +20,7 @@ export function useTaskPolling(intervalMs: number = 1000) {
       // 调试日志
       if (backendTasks.length > 0) {
         console.log('[轮询] 后端任务数量:', backendTasks.length)
-        backendTasks.forEach(task => {
+        backendTasks.forEach((task) => {
           console.log(`[轮询] 任务 ${task.id.substring(0, 8)}: ${task.progress.toFixed(1)}% - ${task.speed}`)
         })
       }

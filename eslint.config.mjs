@@ -31,6 +31,17 @@ export default antfu({
 
   rules: {
     '@typescript-eslint/no-empty-object-type': 0,
+    'unused-imports/no-unused-vars': [
+      'off',
+      {
+        vars: 'all',
+        varsIgnorePattern: '^_',
+        args: 'after-used',
+        argsIgnorePattern: '^_',
+      },
+    ],
+    'no-console': 'off',
+    'no-alert': 'off',
   },
 
 })

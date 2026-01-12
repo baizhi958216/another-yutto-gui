@@ -19,12 +19,18 @@ pub struct VideoInfo {
 pub struct QualityOption {
     pub quality: i32,
     pub description: String,
+    pub available: bool,
+    pub vip_only: bool,
+    pub login_required: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AudioQualityOption {
     pub quality: i32,
     pub description: String,
+    pub available: bool,
+    pub vip_only: bool,
+    pub login_required: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

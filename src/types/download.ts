@@ -7,6 +7,8 @@ export interface DownloadConfig {
   withSubtitle: boolean
   withCover: boolean
   batch: boolean
+  videoOnly?: boolean
+  audioOnly?: boolean
   episodes?: string
   sessdata?: string
 }

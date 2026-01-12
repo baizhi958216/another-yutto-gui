@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import Button from '@/components/common/Button.vue'
 import Card from '@/components/common/Card.vue'
 import Input from '@/components/common/Input.vue'
@@ -22,33 +22,122 @@ watch(() => downloadStore.currentUrl, (newUrl) => {
 // Compute available quality options from videoInfo or use defaults
 const qualityOptions = computed(() => {
   if (downloadStore.videoInfo?.available_qualities && downloadStore.videoInfo.available_qualities.length > 0) {
-    return downloadStore.videoInfo.available_qualities
+    return downloadStore.videoInfo.available_qualities.map(q => ({
+      ...q,
+      displayText: getQualityDisplayText(q)
+    }))
   }
   // Default quality options if not available from backend
   return [
-    { quality: 127, description: '8K 超高清' },
-    { quality: 126, description: '杜比视界' },
-    { quality: 125, description: 'HDR 真彩' },
-    { quality: 120, description: '4K 超清' },
-    { quality: 116, description: '1080P 60帧' },
-    { quality: 112, description: '1080P 高码率' },
-    { quality: 80, description: '1080P 高清' },
-    { quality: 64, description: '720P 高清' },
+    { quality: 127, description: '8K 超高清', available: false, vip_only: true, login_required: false, displayText: '8K 超高清 (需要大会员)' },
+    { quality: 126, description: '杜比视界', available: false, vip_only: true, login_required: false, displayText: '杜比视界 (需要大会员)' },
+    { quality: 125, description: 'HDR 真彩', available: false, vip_only: true, login_required: false, displayText: 'HDR 真彩 (需要大会员)' },
+    { quality: 120, description: '4K 超清', available: false, vip_only: true, login_required: false, displayText: '4K 超清 (需要大会员)' },
+    { quality: 116, description: '1080P 60帧', available: false, vip_only: true, login_required: false, displayText: '1080P 60帧 (需要大会员)' },
+    { quality: 112, description: '1080P 高码率', available: false, vip_only: true, login_required: false, displayText: '1080P 高码率 (需要大会员)' },
+    { quality: 80, description: '1080P 高清', available: false, vip_only: false, login_required: true, displayText: '1080P 高清 (需要登录)' },
+    { quality: 64, description: '720P 高清', available: false, vip_only: false, login_required: true, displayText: '720P 高清 (需要登录)' },
   ]
 })
 
 // Compute available audio quality options from videoInfo or use defaults
 const audioQualityOptions = computed(() => {
   if (downloadStore.videoInfo?.available_audio_qualities && downloadStore.videoInfo.available_audio_qualities.length > 0) {
-    return downloadStore.videoInfo.available_audio_qualities
+    return downloadStore.videoInfo.available_audio_qualities.map(q => ({
+      ...q,
+      displayText: getAudioQualityDisplayText(q)
+    }))
   }
   // Default audio quality options if not available from backend
   return [
-    { quality: 30280, description: 'Hi-Res无损' },
-    { quality: 30232, description: '132K' },
-    { quality: 30216, description: '64K' },
+    { quality: 30251, description: 'Hi-Res无损', available: false, vip_only: true, login_required: false, displayText: 'Hi-Res无损 (需要大会员)' },
+    { quality: 30255, description: '杜比音效', available: false, vip_only: true, login_required: false, displayText: '杜比音效 (需要大会员)' },
+    { quality: 30250, description: '杜比全景声', available: false, vip_only: true, login_required: false, displayText: '杜比全景声 (需要大会员)' },
+    { quality: 30280, description: '320kbps', available: false, vip_only: false, login_required: true, displayText: '320kbps (需要登录)' },
+    { quality: 30232, description: '132kbps', available: false, vip_only: false, login_required: true, displayText: '132kbps (需要登录)' },
+    { quality: 30216, description: '64kbps', available: false, vip_only: false, login_required: true, displayText: '64kbps (需要登录)' },
   ]
 })
+
+// Helper function to generate display text for video quality
+function getQualityDisplayText(quality: any): string {
+  if (quality.available) {
+    return quality.description
+  }
+  if (quality.vip_only) {
+    return `${quality.description} (需要大会员)`
+  }
+  if (quality.login_required) {
+    return `${quality.description} (需要登录)`
+  }
+  return quality.description
+}
+
+// Helper function to generate display text for audio quality
+function getAudioQualityDisplayText(quality: any): string {
+  if (quality.available) {
+    return quality.description
+  }
+  if (quality.vip_only) {
+    return `${quality.description} (需要大会员)`
+  }
+  if (quality.login_required) {
+    return `${quality.description} (需要登录)`
+  }
+  return quality.description
+}
+
+// Handle video-only download
+async function handleVideoOnlyDownload() {
+  if (!downloadStore.currentConfig) return
+
+  // Create a copy of the config with videoOnly flag
+  // Disable danmaku, subtitle, and cover to avoid merging them
+  const videoOnlyConfig = {
+    ...downloadStore.currentConfig,
+    videoOnly: true,
+    audioOnly: false,
+    withDanmaku: false,
+    withSubtitle: false,
+    withCover: false,
+  }
+
+  // Temporarily update the config
+  const originalConfig = { ...downloadStore.currentConfig }
+  downloadStore.updateConfig(videoOnlyConfig)
+
+  // Submit the download
+  await submitDownload()
+
+  // Restore the original config
+  downloadStore.updateConfig(originalConfig)
+}
+
+// Handle audio-only download
+async function handleAudioOnlyDownload() {
+  if (!downloadStore.currentConfig) return
+
+  // Create a copy of the config with audioOnly flag
+  // Disable danmaku, subtitle, and cover as they don't apply to audio-only
+  const audioOnlyConfig = {
+    ...downloadStore.currentConfig,
+    videoOnly: false,
+    audioOnly: true,
+    withDanmaku: false,
+    withSubtitle: false,
+    withCover: false,
+  }
+
+  // Temporarily update the config
+  const originalConfig = { ...downloadStore.currentConfig }
+  downloadStore.updateConfig(audioOnlyConfig)
+
+  // Submit the download
+  await submitDownload()
+
+  // Restore the original config
+  downloadStore.updateConfig(originalConfig)
+}
 
 async function handleFetchInfo() {
   if (url.value) {
@@ -75,7 +164,7 @@ onMounted(() => {
 
 <template>
   <div class="page-container">
-    <Card title="下载视频">
+    <Card>
       <div class="space-y-4">
         <!-- URL 输入 -->
         <div>
@@ -125,9 +214,17 @@ onMounted(() => {
         <!-- 下载配置 -->
         <div v-if="downloadStore.currentConfig" class="space-y-3">
           <div>
-            <label class="text-sm text-text-primary font-medium mb-2 block">
-              视频质量
-            </label>
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-sm text-text-primary font-medium">
+                视频质量
+              </label>
+              <Button
+                variant="secondary"
+                @click="handleVideoOnlyDownload"
+              >
+                仅视频
+              </Button>
+            </div>
             <select
               v-model="downloadStore.currentConfig.videoQuality"
               class="input-base"
@@ -136,16 +233,26 @@ onMounted(() => {
                 v-for="option in qualityOptions"
                 :key="option.quality"
                 :value="option.quality"
+                :disabled="!option.available"
+                :class="{ 'text-text-tertiary': !option.available }"
               >
-                {{ option.description }}
+                {{ option.displayText }}
               </option>
             </select>
           </div>
 
           <div>
-            <label class="text-sm text-text-primary font-medium mb-2 block">
-              音频质量
-            </label>
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-sm text-text-primary font-medium">
+                音频质量
+              </label>
+              <Button
+                variant="secondary"
+                @click="handleAudioOnlyDownload"
+              >
+                仅音频
+              </Button>
+            </div>
             <select
               v-model="downloadStore.currentConfig.audioQuality"
               class="input-base"
@@ -154,8 +261,10 @@ onMounted(() => {
                 v-for="option in audioQualityOptions"
                 :key="option.quality"
                 :value="option.quality"
+                :disabled="!option.available"
+                :class="{ 'text-text-tertiary': !option.available }"
               >
-                {{ option.description }}
+                {{ option.displayText }}
               </option>
             </select>
           </div>
