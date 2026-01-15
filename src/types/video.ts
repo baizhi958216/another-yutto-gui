@@ -18,11 +18,17 @@ export interface VideoInfo {
 export interface QualityOption {
   quality: number
   description: string
+  available?: boolean
+  vip_only?: boolean
+  login_required?: boolean
 }
 
 export interface AudioQualityOption {
   quality: number
   description: string
+  available?: boolean
+  vip_only?: boolean
+  login_required?: boolean
 }
 
 export interface Episode {
