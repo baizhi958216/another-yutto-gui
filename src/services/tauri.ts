@@ -5,11 +5,20 @@ import { open } from '@tauri-apps/plugin-dialog'
 /**
  * 获取视频信息
  * @param url 视频 URL
+ * @param isVip 是否为 VIP 用户
+ * @param sessdata 用户的 SESSDATA cookie
  * @returns 视频信息
  */
-export async function getVideoInfo(url: string): Promise<VideoInfo> {
+export async function getVideoInfo(url: string, isVip?: boolean, sessdata?: string): Promise<VideoInfo> {
   try {
-    return await invoke<VideoInfo>('fetch_video_info', { url })
+    // 确保 isVip 是明确的 boolean 值，而不是 undefined
+    const isVipValue = isVip === true
+    console.log('[Tauri] Calling fetch_video_info with:', { url, isVip: isVipValue, sessdata: sessdata ? 'present' : 'null' })
+    return await invoke<VideoInfo>('fetch_video_info', {
+      url,
+      isVip: isVipValue, // 使用驼峰命名，Tauri 会自动转换为 Rust 的 snake_case
+      sessdata: sessdata || null,
+    })
   }
   catch (error) {
     console.error('Failed to get video info:', error)
@@ -107,5 +116,18 @@ export async function selectFile(): Promise<string | null> {
   catch (error) {
     console.error('Failed to select file:', error)
     return null
+  }
+}
+
+/**
+ * 打开 Bilibili 登录窗口
+ */
+export async function openBilibiliLogin(): Promise<void> {
+  try {
+    await invoke('open_login_window')
+  }
+  catch (error) {
+    console.error('Failed to open login window:', error)
+    throw error
   }
 }

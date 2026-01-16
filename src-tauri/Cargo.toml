@@ -30,4 +30,9 @@ regex = "1"
 thiserror = "1"
 quick-xml = "0.36"
 reqwest = { version = "0.12", features = ["json"] }
+hex = "0.4"
+hostname = "0.3"
+whoami = "1.4"
+url = "2"
+
 

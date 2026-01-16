@@ -1,14 +1,16 @@
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import Button from '@/components/common/Button.vue'
 import Card from '@/components/common/Card.vue'
 import Input from '@/components/common/Input.vue'
 import { useToast } from '@/composables/useToast'
 import { selectFile, selectFolder } from '@/services/tauri'
 import { useSettingsStore } from '@/stores/settings'
+import { useAuthStore } from '@/stores/auth'
 
 const settingsStore = useSettingsStore()
-const { showSuccess } = useToast()
+const authStore = useAuthStore()
+const { showSuccess, showError } = useToast()
 
 const localSettings = ref({ ...settingsStore.settings })
 
@@ -38,6 +40,31 @@ function handleReset() {
     showSuccess('设置已重置')
   }
 }
+
+async function handleLogin() {
+  try {
+    await authStore.login()
+  }
+  catch (error) {
+    showError('登录失败，请重试')
+  }
+}
+
+async function handleLogout() {
+  if (confirm('确定要退出登录吗？')) {
+    try {
+      await authStore.logout()
+      showSuccess('已退出登录')
+    }
+    catch (error) {
+      showError('退出登录失败')
+    }
+  }
+}
+
+onMounted(async () => {
+  await authStore.loadSessdata()
+})
 </script>
 
 <template>
@@ -105,6 +132,50 @@ function handleReset() {
           <p class="text-xs text-text-tertiary mt-1">
             如果未设置，将使用系统 PATH 中的 yutto
           </p>
+        </div>
+      </Card>
+
+      <!-- 账号设置 -->
+      <Card title="账号设置">
+        <div class="space-y-3">
+          <p class="text-sm text-text-secondary">
+            登录 Bilibili 账号以下载会员专享内容
+          </p>
+
+          <div v-if="!authStore.isLoggedIn">
+            <Button variant="primary" @click="handleLogin">
+              登录 Bilibili
+            </Button>
+          </div>
+
+          <div v-else class="space-y-3">
+            <div class="space-y-2">
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-green-600 font-medium">✓ 已登录 Bilibili</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-text-secondary">大会员状态:</span>
+                <span v-if="authStore.isVip" class="text-sm text-purple-600 font-medium">已开通</span>
+                <span v-else class="text-sm text-text-tertiary">未开通</span>
+              </div>
+              <div>
+                <label class="text-xs text-text-tertiary mb-1 block">
+                  SESSDATA
+                </label>
+                <div class="bg-bg-secondary p-2 rounded text-xs font-mono text-text-secondary break-all">
+                  {{ authStore.sessdata || '加载中...' }}
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <Button variant="primary" @click="handleLogin">
+                重新登录
+              </Button>
+              <Button variant="secondary" @click="handleLogout">
+                退出登录
+              </Button>
+            </div>
+          </div>
         </div>
       </Card>
 

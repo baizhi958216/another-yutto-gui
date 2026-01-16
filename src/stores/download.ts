@@ -4,6 +4,7 @@ import { ref } from 'vue'
 import { ApiService } from '@/services/api'
 import { normalizeBilibiliUrl, validateBilibiliUrl } from '@/utils/validate'
 import { useSettingsStore } from './settings'
+import { useAuthStore } from './auth'
 
 export const useDownloadStore = defineStore('download', () => {
   // State
@@ -27,7 +28,14 @@ export const useDownloadStore = defineStore('download', () => {
     error.value = null
 
     try {
-      videoInfo.value = await ApiService.fetchVideoInfo(normalizedUrl)
+      const authStore = useAuthStore()
+      // 确保 VIP 状态是最新的
+      if (authStore.sessdata && !authStore.isVip) {
+        console.log('[DownloadStore] Checking VIP status before fetching video info')
+        await authStore.checkVipStatus()
+      }
+      console.log('[DownloadStore] Fetching video info with isVip:', authStore.isVip, 'sessdata present:', !!authStore.sessdata)
+      videoInfo.value = await ApiService.fetchVideoInfo(normalizedUrl, authStore.isVip, authStore.sessdata || undefined)
       currentUrl.value = normalizedUrl
     }
     catch (err) {
@@ -50,6 +58,7 @@ export const useDownloadStore = defineStore('download', () => {
 
   function initConfig(url: string) {
     const settingsStore = useSettingsStore()
+    const authStore = useAuthStore()
     let defaultPath = settingsStore.getSetting('defaultDownloadPath')
 
     // Ensure we have a valid path - use current directory if empty
@@ -88,6 +97,7 @@ export const useDownloadStore = defineStore('download', () => {
       batch: false,
       videoOnly: false,
       audioOnly: false,
+      sessdata: authStore.sessdata || undefined,
     }
   }
 

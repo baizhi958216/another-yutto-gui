@@ -1,6 +1,15 @@
 <script lang="ts" setup>
+import { onMounted } from 'vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppNav from '@/components/layout/AppNav.vue'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
+
+// Load auth state on app mount
+onMounted(async () => {
+  await authStore.loadSessdata()
+})
 </script>
 
 <template>

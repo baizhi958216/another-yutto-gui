@@ -22,10 +22,12 @@ watch(() => downloadStore.currentUrl, (newUrl) => {
 // Compute available quality options from videoInfo or use defaults
 const qualityOptions = computed(() => {
   if (downloadStore.videoInfo?.available_qualities && downloadStore.videoInfo.available_qualities.length > 0) {
-    return downloadStore.videoInfo.available_qualities.map(q => ({
+    const options = downloadStore.videoInfo.available_qualities.map(q => ({
       ...q,
       displayText: getQualityDisplayText(q)
     }))
+    console.log('[DownloadView] Video quality options:', options)
+    return options
   }
   // Default quality options if not available from backend
   return [
@@ -43,10 +45,12 @@ const qualityOptions = computed(() => {
 // Compute available audio quality options from videoInfo or use defaults
 const audioQualityOptions = computed(() => {
   if (downloadStore.videoInfo?.available_audio_qualities && downloadStore.videoInfo.available_audio_qualities.length > 0) {
-    return downloadStore.videoInfo.available_audio_qualities.map(q => ({
+    const options = downloadStore.videoInfo.available_audio_qualities.map(q => ({
       ...q,
       displayText: getAudioQualityDisplayText(q)
     }))
+    console.log('[DownloadView] Audio quality options:', options)
+    return options
   }
   // Default audio quality options if not available from backend
   return [

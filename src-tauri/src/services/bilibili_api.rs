@@ -6,7 +6,7 @@ pub struct BilibiliApi;
 
 impl BilibiliApi {
     /// 从B站API获取视频信息
-    pub async fn fetch_video_info_from_html(url: &str, sessdata: Option<&str>) -> Result<VideoInfo, String> {
+    pub async fn fetch_video_info_from_html(url: &str, sessdata: Option<&str>, is_vip: bool) -> Result<VideoInfo, String> {
         // 从 URL 中提取 BV 号或 AV 号
         let (bvid, aid) = Self::extract_video_id(url)?;
 
@@ -70,7 +70,7 @@ impl BilibiliApi {
             .ok_or("API响应中未找到data字段")?;
 
         // 解析视频信息
-        Self::parse_api_response(data, sessdata).await
+        Self::parse_api_response(data, sessdata, is_vip).await
     }
 
     /// 从 URL 中提取 BV 号或 AV 号
@@ -93,7 +93,7 @@ impl BilibiliApi {
     }
 
     /// 解析 API 响应数据
-    async fn parse_api_response(data: &Value, sessdata: Option<&str>) -> Result<VideoInfo, String> {
+    async fn parse_api_response(data: &Value, sessdata: Option<&str>, is_vip: bool) -> Result<VideoInfo, String> {
         let title = data.get("title")
             .and_then(|v| v.as_str())
             .unwrap_or("")
@@ -158,7 +158,7 @@ impl BilibiliApi {
             .unwrap_or(0);
 
         // 获取视频质量选项和音频质量选项
-        let (available_qualities, available_audio_qualities) = Self::fetch_video_qualities(&bvid, aid, cid, sessdata).await
+        let (available_qualities, available_audio_qualities) = Self::fetch_video_qualities(&bvid, aid, cid, sessdata, is_vip).await
             .unwrap_or_else(|e| {
                 eprintln!("获取视频质量失败: {}, 使用默认选项", e);
                 (Self::get_default_quality_options(), Self::get_default_audio_quality_options())
@@ -181,14 +181,12 @@ impl BilibiliApi {
     }
 
     /// 获取视频的可用清晰度选项和音频质量选项
-    async fn fetch_video_qualities(bvid: &str, aid: i64, cid: i64, sessdata: Option<&str>) -> Result<(Vec<QualityOption>, Vec<AudioQualityOption>), String> {
+    async fn fetch_video_qualities(bvid: &str, aid: i64, cid: i64, sessdata: Option<&str>, is_vip: bool) -> Result<(Vec<QualityOption>, Vec<AudioQualityOption>), String> {
         // 构建播放信息 API URL
         let api_url = format!(
             "https://api.bilibili.com/x/player/playurl?bvid={}&cid={}&qn=127&fnval=4048&fourk=1",
             bvid, cid
         );
-
-        eprintln!("调用播放信息 API: {}", api_url);
 
         let client = reqwest::Client::builder()
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
@@ -256,12 +254,9 @@ impl BilibiliApi {
                     let (vip_only, login_required) = Self::get_quality_requirements(quality_code);
 
                     // 判断用户是否可以访问这个质量
-                    // 如果需要大会员，我们无法判断用户是否是大会员，所以标记为不可用
-                    // 如果需要登录，检查用户是否已登录
-                    // 如果不需要登录（360p及以下），则可用
                     let available = if vip_only {
-                        // 需要大会员的质量，我们无法判断，标记为不可用
-                        false
+                        // 需要大会员的质量，检查用户是否是VIP
+                        is_vip
                     } else if login_required {
                         // 需要登录的质量，检查是否已登录
                         is_logged_in
@@ -296,7 +291,7 @@ impl BilibiliApi {
 
                             // 音频质量的可用性判断逻辑与视频相同
                             let available = if vip_only {
-                                false
+                                is_vip
                             } else if login_required {
                                 is_logged_in
                             } else {
@@ -326,13 +321,6 @@ impl BilibiliApi {
         } else {
             audio_qualities
         };
-
-        eprintln!("成功获取 {} 个视频质量选项（其中 {} 个可用）和 {} 个音频质量选项（其中 {} 个可用）",
-            qualities.len(),
-            qualities.iter().filter(|q| q.available).count(),
-            audio_qualities.len(),
-            audio_qualities.iter().filter(|q| q.available).count()
-        );
 
         Ok((qualities, audio_qualities))
     }

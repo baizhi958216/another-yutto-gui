@@ -13,8 +13,8 @@ export class ApiService {
   /**
    * 获取视频信息
    */
-  static async fetchVideoInfo(url: string): Promise<VideoInfo> {
-    return await tauri.getVideoInfo(url)
+  static async fetchVideoInfo(url: string, isVip?: boolean, sessdata?: string): Promise<VideoInfo> {
+    return await tauri.getVideoInfo(url, isVip, sessdata)
   }
 
   /**

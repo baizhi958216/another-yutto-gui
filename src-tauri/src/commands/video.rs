@@ -3,9 +3,12 @@ use crate::services::bilibili_api::BilibiliApi;
 use crate::models::video::VideoInfo;
 
 #[tauri::command]
-pub async fn fetch_video_info(url: String, sessdata: Option<String>) -> Result<VideoInfo, String> {
+pub async fn fetch_video_info(url: String, sessdata: Option<String>, is_vip: bool) -> Result<VideoInfo, String> {
+    eprintln!("[fetch_video_info] Received parameters - url: {}, sessdata present: {}, is_vip: {}",
+        url, sessdata.is_some(), is_vip);
+
     // 首先尝试从B站HTML页面获取详细信息（包括可用清晰度）
-    match BilibiliApi::fetch_video_info_from_html(&url, sessdata.as_deref()).await {
+    match BilibiliApi::fetch_video_info_from_html(&url, sessdata.as_deref(), is_vip).await {
         Ok(info) => Ok(info),
         Err(e) => {
             // 如果HTML解析失败，回退到使用yutto CLI获取基本信息
