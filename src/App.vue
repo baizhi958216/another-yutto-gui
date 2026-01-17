@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { onMounted } from 'vue'
+import ToastContainer from '@/components/common/ToastContainer.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppNav from '@/components/layout/AppNav.vue'
 import TitleBar from '@/components/layout/TitleBar.vue'
@@ -32,6 +33,9 @@ onMounted(async () => {
         </Transition>
       </RouterView>
     </main>
+
+    <!-- Toast Container -->
+    <ToastContainer />
   </div>
 </template>
 
