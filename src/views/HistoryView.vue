@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { Search, Trash2 } from 'lucide-vue-next'
 import { ref } from 'vue'
 import Button from '@/components/common/Button.vue'
 import Card from '@/components/common/Card.vue'
@@ -54,12 +55,15 @@ function handleDeleteEntry(id: string) {
     <!-- 搜索和筛选 -->
     <Card class="mb-4">
       <div class="flex gap-3">
-        <Input
-          v-model="searchQuery"
-          placeholder="搜索标题或链接..."
-          class="flex-1"
-          @keyup.enter="handleSearch"
-        />
+        <div class="flex-1 relative">
+          <Input
+            v-model="searchQuery"
+            placeholder="搜索标题或链接..."
+            class="pl-10 flex-1"
+            @keyup.enter="handleSearch"
+          />
+          <Search :size="18" class="text-gray-400 left-3 top-1/2 absolute -translate-y-1/2" />
+        </div>
         <select
           v-model="historyStore.sortBy"
           class="input-base w-32"
@@ -81,10 +85,15 @@ function handleDeleteEntry(id: string) {
 
     <!-- 空状态 -->
     <Card v-if="historyStore.filteredEntries.length === 0">
-      <div class="py-12 text-center">
-        <div class="i-carbon-time text-6xl text-text-tertiary mx-auto mb-4" />
-        <p class="text-text-secondary">
+      <div class="text-center opacity-50 flex flex-col min-h-[60vh] items-center justify-center">
+        <div class="mb-6 rounded-full bg-gray-50 flex h-32 w-32 items-center justify-center">
+          <span class="text-5xl">🕰️</span>
+        </div>
+        <h2 class="text-xl text-gray-500 font-bold">
           {{ searchQuery ? '没有找到匹配的记录' : '暂无下载历史' }}
+        </h2>
+        <p class="text-sm text-gray-400 mt-2">
+          下载完成的视频会出现在这里～
         </p>
       </div>
     </Card>
@@ -101,7 +110,7 @@ function handleDeleteEntry(id: string) {
           <img
             :src="entry.thumbnail"
             :alt="entry.title"
-            class="rounded-lg h-20 w-32 object-cover"
+            class="rounded-2xl h-20 w-32 object-cover"
           >
 
           <!-- 信息 -->
@@ -122,7 +131,7 @@ function handleDeleteEntry(id: string) {
           <!-- 操作按钮 -->
           <div class="flex gap-2 items-center">
             <Button variant="secondary" @click="handleDeleteEntry(entry.id)">
-              <div class="i-carbon-trash-can" />
+              <Trash2 :size="16" />
             </Button>
           </div>
         </div>

@@ -23,7 +23,7 @@ defineEmits<{
     :readonly="readonly"
     :min="min"
     :max="max"
-    class="input"
+    class="input-base"
     @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
   >
 </template>

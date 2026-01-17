@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { getCurrentWindow } from '@tauri-apps/api/window'
+import { Minus, Sparkles, Square, X } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 
 const appWindow = getCurrentWindow()
@@ -28,30 +29,38 @@ async function closeWindow() {
 </script>
 
 <template>
-  <div class="bg-#1e1e1e flex h-32px select-none items-center relative z-1000">
-    <div data-tauri-drag-region class="flex w-full items-center justify-end">
+  <div class="pl-3 border-b border-gray-50 bg-#f5f6fa flex select-none items-center relative z-1000">
+    <div data-tauri-drag-region class="flex w-full items-center justify-between">
+      <!-- App Branding -->
+      <div class="flex gap-2 items-center relative z--1">
+        <div class="text-white rounded-lg bg-teal-400 flex h-6 w-6 shadow-sm items-center justify-center">
+          <Sparkles :size="14" />
+        </div>
+        <span class="text-sm text-teal-600 tracking-wide font-bold">yutto</span>
+      </div>
+
+      <!-- Window Controls -->
       <div class="flex gap-0">
         <button
-          class="text-16px text-#cccccc border-none bg-transparent flex h-32px w-46px cursor-pointer transition-background-color-150 items-center justify-center active:bg-white/15 hover:bg-white/10"
+          class="text-gray-600 border-none bg-transparent flex h-10 w-12 cursor-pointer transition-all items-center justify-center active:bg-gray-200 hover:bg-gray-100"
           aria-label="Minimize"
           @click="minimizeWindow"
         >
-          <div class="i-carbon-minimize h-16px w-16px" />
+          <Minus :size="14" />
         </button>
         <button
-          class="text-16px text-#cccccc border-none bg-transparent flex h-32px w-46px cursor-pointer transition-background-color-150 items-center justify-center active:bg-white/15 hover:bg-white/10"
+          class="text-gray-600 border-none bg-transparent flex h-10 w-12 cursor-pointer transition-all items-center justify-center active:bg-gray-200 hover:bg-gray-100"
           aria-label="Maximize"
           @click="toggleMaximize"
         >
-          <div v-if="!isMaximized" class="i-carbon-maximize h-16px w-16px" />
-          <div v-else class="i-carbon-minimize h-16px w-16px" />
+          <Square :size="14" />
         </button>
         <button
-          class="text-16px text-#cccccc border-none bg-transparent flex h-32px w-46px cursor-pointer transition-background-color-150 items-center justify-center hover:text-white active:bg-#c50f1f hover:bg-#e81123"
+          class="text-gray-600 border-none bg-transparent flex h-10 w-12 cursor-pointer transition-all items-center justify-center hover:text-white active:bg-red-600 hover:bg-red-500"
           aria-label="Close"
           @click="closeWindow"
         >
-          <div class="i-carbon-close h-16px w-16px" />
+          <X :size="14" />
         </button>
       </div>
     </div>

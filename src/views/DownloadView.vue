@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { Search } from 'lucide-vue-next'
 import { computed, onMounted, ref, watch } from 'vue'
 import Button from '@/components/common/Button.vue'
 import Card from '@/components/common/Card.vue'
@@ -24,7 +25,7 @@ const qualityOptions = computed(() => {
   if (downloadStore.videoInfo?.available_qualities && downloadStore.videoInfo.available_qualities.length > 0) {
     const options = downloadStore.videoInfo.available_qualities.map(q => ({
       ...q,
-      displayText: getQualityDisplayText(q)
+      displayText: getQualityDisplayText(q),
     }))
     console.log('[DownloadView] Video quality options:', options)
     return options
@@ -47,7 +48,7 @@ const audioQualityOptions = computed(() => {
   if (downloadStore.videoInfo?.available_audio_qualities && downloadStore.videoInfo.available_audio_qualities.length > 0) {
     const options = downloadStore.videoInfo.available_audio_qualities.map(q => ({
       ...q,
-      displayText: getAudioQualityDisplayText(q)
+      displayText: getAudioQualityDisplayText(q),
     }))
     console.log('[DownloadView] Audio quality options:', options)
     return options
@@ -93,7 +94,8 @@ function getAudioQualityDisplayText(quality: any): string {
 
 // Handle video-only download
 async function handleVideoOnlyDownload() {
-  if (!downloadStore.currentConfig) return
+  if (!downloadStore.currentConfig)
+    return
 
   // Create a copy of the config with videoOnly flag
   // Disable danmaku, subtitle, and cover to avoid merging them
@@ -119,7 +121,8 @@ async function handleVideoOnlyDownload() {
 
 // Handle audio-only download
 async function handleAudioOnlyDownload() {
-  if (!downloadStore.currentConfig) return
+  if (!downloadStore.currentConfig)
+    return
 
   // Create a copy of the config with audioOnly flag
   // Disable danmaku, subtitle, and cover as they don't apply to audio-only
@@ -168,6 +171,19 @@ onMounted(() => {
 
 <template>
   <div class="page-container">
+    <!-- Welcome Section -->
+    <div v-if="!downloadStore.videoInfo" class="mb-10 text-center">
+      <div class="mb-6 animate-bounce">
+        <span class="text-6xl">✨</span>
+      </div>
+      <h1 class="text-3xl text-gray-800 font-extrabold mb-2">
+        嗨～ 你好呀～
+      </h1>
+      <p class="text-gray-500">
+        粘贴 B 站视频链接开始下载吧！
+      </p>
+    </div>
+
     <Card>
       <div class="space-y-4">
         <!-- URL 输入 -->
@@ -176,12 +192,15 @@ onMounted(() => {
             视频链接
           </label>
           <div class="flex gap-2">
-            <Input
-              v-model="url"
-              placeholder="请输入 B 站视频链接 (BV号/番剧)"
-              class="flex-1"
-              @keyup.enter="handleFetchInfo"
-            />
+            <div class="flex-1 relative">
+              <Input
+                v-model="url"
+                placeholder="请输入 B 站视频链接 (BV号/番剧)"
+                class="pl-10 flex-1"
+                @keyup.enter="handleFetchInfo"
+              />
+              <Search :size="18" class="text-gray-400 left-3 top-1/2 absolute -translate-y-1/2" />
+            </div>
             <Button
               variant="primary"
               :loading="downloadStore.isLoading"
@@ -196,12 +215,12 @@ onMounted(() => {
         </div>
 
         <!-- 视频信息预览 -->
-        <div v-if="downloadStore.videoInfo" class="card-hover p-4">
+        <div v-if="downloadStore.videoInfo" class="p-4 border border-gray-100 rounded-3xl bg-white shadow-sm transition-all hover:shadow-lg">
           <div class="flex gap-4">
             <img
               :src="downloadStore.videoInfo.thumbnail"
               :alt="downloadStore.videoInfo.title"
-              class="rounded-lg h-20 w-32 object-cover"
+              class="rounded-2xl h-20 w-32 object-cover"
               referrerpolicy="no-referrer"
             >
             <div class="flex-1">
@@ -218,7 +237,7 @@ onMounted(() => {
         <!-- 下载配置 -->
         <div v-if="downloadStore.currentConfig" class="space-y-3">
           <div>
-            <div class="flex items-center justify-between mb-2">
+            <div class="mb-2 flex items-center justify-between">
               <label class="text-sm text-text-primary font-medium">
                 视频质量
               </label>
@@ -246,7 +265,7 @@ onMounted(() => {
           </div>
 
           <div>
-            <div class="flex items-center justify-between mb-2">
+            <div class="mb-2 flex items-center justify-between">
               <label class="text-sm text-text-primary font-medium">
                 音频质量
               </label>

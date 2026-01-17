@@ -1,12 +1,13 @@
 <script lang="ts" setup>
+import { Folder, Settings, ShieldCheck, Zap } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import Button from '@/components/common/Button.vue'
 import Card from '@/components/common/Card.vue'
 import Input from '@/components/common/Input.vue'
 import { useToast } from '@/composables/useToast'
 import { selectFile, selectFolder } from '@/services/tauri'
-import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
+import { useSettingsStore } from '@/stores/settings'
 
 const settingsStore = useSettingsStore()
 const authStore = useAuthStore()
@@ -69,13 +70,27 @@ onMounted(async () => {
 
 <template>
   <div class="page-container">
-    <h2 class="text-2xl text-text-primary font-bold mb-4">
-      设置
-    </h2>
+    <!-- Section Header -->
+    <div class="mb-8 flex gap-4 items-center">
+      <div class="text-white rounded-2xl bg-teal-500 flex h-12 w-12 shadow-lg shadow-teal-100 items-center justify-center">
+        <Settings :size="24" />
+      </div>
+      <h2 class="text-2xl text-gray-800 font-bold">
+        偏好设置
+      </h2>
+    </div>
 
     <div class="space-y-4">
       <!-- 下载设置 -->
-      <Card title="下载设置">
+      <Card>
+        <div class="mb-4 flex gap-3 items-center">
+          <div class="rounded-lg bg-teal-100 flex h-8 w-8 items-center justify-center">
+            <Folder :size="18" class="text-teal-600" />
+          </div>
+          <h3 class="text-lg text-gray-800 font-semibold">
+            下载设置
+          </h3>
+        </div>
         <div class="space-y-4">
           <div>
             <label class="text-sm text-text-primary font-medium mb-2 block">
@@ -113,7 +128,15 @@ onMounted(async () => {
       </Card>
 
       <!-- Yutto CLI 设置 -->
-      <Card title="Yutto CLI 设置">
+      <Card>
+        <div class="mb-4 flex gap-3 items-center">
+          <div class="rounded-lg bg-teal-100 flex h-8 w-8 items-center justify-center">
+            <Zap :size="18" class="text-teal-600" />
+          </div>
+          <h3 class="text-lg text-gray-800 font-semibold">
+            Yutto CLI 设置
+          </h3>
+        </div>
         <div>
           <label class="text-sm text-text-primary font-medium mb-2 block">
             Yutto CLI 路径
@@ -136,7 +159,15 @@ onMounted(async () => {
       </Card>
 
       <!-- 账号设置 -->
-      <Card title="账号设置">
+      <Card>
+        <div class="mb-4 flex gap-3 items-center">
+          <div class="rounded-lg bg-teal-100 flex h-8 w-8 items-center justify-center">
+            <ShieldCheck :size="18" class="text-teal-600" />
+          </div>
+          <h3 class="text-lg text-gray-800 font-semibold">
+            账号设置
+          </h3>
+        </div>
         <div class="space-y-3">
           <p class="text-sm text-text-secondary">
             登录 Bilibili 账号以下载会员专享内容
@@ -150,10 +181,10 @@ onMounted(async () => {
 
           <div v-else class="space-y-3">
             <div class="space-y-2">
-              <div class="flex items-center gap-2">
+              <div class="flex gap-2 items-center">
                 <span class="text-sm text-green-600 font-medium">✓ 已登录 Bilibili</span>
               </div>
-              <div class="flex items-center gap-2">
+              <div class="flex gap-2 items-center">
                 <span class="text-sm text-text-secondary">大会员状态:</span>
                 <span v-if="authStore.isVip" class="text-sm text-purple-600 font-medium">已开通</span>
                 <span v-else class="text-sm text-text-tertiary">未开通</span>
@@ -162,7 +193,7 @@ onMounted(async () => {
                 <label class="text-xs text-text-tertiary mb-1 block">
                   SESSDATA
                 </label>
-                <div class="bg-bg-secondary p-2 rounded text-xs font-mono text-text-secondary break-all">
+                <div class="text-xs text-text-secondary font-mono p-2 rounded bg-bg-secondary break-all">
                   {{ authStore.sessdata || '加载中...' }}
                 </div>
               </div>
@@ -180,7 +211,10 @@ onMounted(async () => {
       </Card>
 
       <!-- 外观设置 -->
-      <Card title="外观设置">
+      <Card>
+        <h3 class="text-lg text-gray-800 font-semibold mb-4">
+          外观设置
+        </h3>
         <div>
           <label class="text-sm text-text-primary font-medium mb-2 block">
             主题
@@ -197,7 +231,10 @@ onMounted(async () => {
       </Card>
 
       <!-- 语言设置 -->
-      <Card title="语言设置">
+      <Card>
+        <h3 class="text-lg text-gray-800 font-semibold mb-4">
+          语言设置
+        </h3>
         <div>
           <label class="text-sm text-text-primary font-medium mb-2 block">
             界面语言

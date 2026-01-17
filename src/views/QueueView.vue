@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { Pause, Play, Video, X } from 'lucide-vue-next'
 import { computed } from 'vue'
 import Button from '@/components/common/Button.vue'
 import Card from '@/components/common/Card.vue'
@@ -30,7 +31,7 @@ function getStatusText(status: string) {
 function getStatusColor(status: string) {
   const colorMap: Record<string, string> = {
     pending: 'text-text-secondary',
-    downloading: 'text-primary-500',
+    downloading: 'text-teal-500',
     paused: 'text-warning',
     completed: 'text-success',
     error: 'text-error',
@@ -121,10 +122,15 @@ function getDownloadTags(task: any): string[] {
 
     <!-- 空状态 -->
     <Card v-if="!hasActiveTasks">
-      <div class="py-12 text-center">
-        <div class="i-carbon-list text-6xl text-text-tertiary mx-auto mb-4" />
-        <p class="text-text-secondary">
-          暂无下载任务
+      <div class="text-center opacity-50 flex flex-col min-h-[60vh] items-center justify-center">
+        <div class="mb-6 rounded-full bg-gray-50 flex h-32 w-32 items-center justify-center">
+          <span class="text-5xl">🥡</span>
+        </div>
+        <h2 class="text-xl text-gray-500 font-bold">
+          暂时没有正在下载的任务哦～
+        </h2>
+        <p class="text-sm text-gray-400 mt-2">
+          快去主页粘贴个链接试试吧！
         </p>
       </div>
     </Card>
@@ -142,11 +148,11 @@ function getDownloadTags(task: any): string[] {
             v-if="task.videoInfo?.thumbnail"
             :src="task.videoInfo.thumbnail"
             :alt="task.videoInfo.title"
-            class="rounded-lg h-16 w-24 object-cover"
+            class="rounded-2xl h-16 w-24 object-cover"
             referrerpolicy="no-referrer"
           >
-          <div v-else class="rounded-lg bg-bg-tertiary flex h-16 w-24 items-center justify-center">
-            <div class="i-carbon-video text-2xl text-text-tertiary" />
+          <div v-else class="rounded-2xl bg-bg-tertiary flex h-16 w-24 items-center justify-center">
+            <Video :size="24" class="text-text-tertiary" />
           </div>
 
           <!-- 任务信息 -->
@@ -156,11 +162,11 @@ function getDownloadTags(task: any): string[] {
             </h3>
 
             <!-- 下载参数标签 -->
-            <div class="flex flex-wrap gap-1 mb-2">
+            <div class="mb-2 flex flex-wrap gap-1">
               <span
                 v-for="tag in getDownloadTags(task)"
                 :key="tag"
-                class="text-xs bg-bg-tertiary text-text-secondary px-2 py-0.5 rounded"
+                class="text-xs text-text-secondary px-2 py-0.5 rounded bg-bg-tertiary"
               >
                 {{ tag }}
               </span>
@@ -191,21 +197,21 @@ function getDownloadTags(task: any): string[] {
               variant="secondary"
               @click="pauseDownload(task.id)"
             >
-              <div class="i-carbon-pause" />
+              <Pause :size="16" />
             </Button>
             <Button
               v-if="task.status === 'paused'"
               variant="secondary"
               @click="resumeDownload(task.id)"
             >
-              <div class="i-carbon-play" />
+              <Play :size="16" />
             </Button>
             <Button
               v-if="task.status !== 'completed'"
               variant="secondary"
               @click="cancelDownload(task.id)"
             >
-              <div class="i-carbon-close" />
+              <X :size="16" />
             </Button>
           </div>
         </div>

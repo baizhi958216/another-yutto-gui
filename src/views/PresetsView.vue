@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { Preset } from '@/types'
+import { Plus, Trash2, Video } from 'lucide-vue-next'
 import { ref } from 'vue'
 import Button from '@/components/common/Button.vue'
 import Card from '@/components/common/Card.vue'
@@ -96,7 +97,7 @@ function getQualityLabel(quality: number): string {
         预设管理
       </h2>
       <Button variant="primary" @click="isCreating = !isCreating">
-        <div class="i-carbon-add mr-1" />
+        <Plus :size="16" class="mr-1" />
         新建预设
       </Button>
     </div>
@@ -200,10 +201,15 @@ function getQualityLabel(quality: number): string {
     <!-- 预设列表 -->
     <div v-if="presetsStore.presets.length === 0 && !isCreating">
       <Card>
-        <div class="py-12 text-center">
-          <div class="i-carbon-save text-6xl text-text-tertiary mx-auto mb-4" />
-          <p class="text-text-secondary mb-4">
-            暂无预设，点击上方按钮创建
+        <div class="text-center opacity-50 flex flex-col min-h-[60vh] items-center justify-center">
+          <div class="mb-6 rounded-full bg-gray-50 flex h-32 w-32 items-center justify-center">
+            <span class="text-5xl">💾</span>
+          </div>
+          <h2 class="text-xl text-gray-500 font-bold">
+            暂无预设
+          </h2>
+          <p class="text-sm text-gray-400 mt-2">
+            点击上方按钮创建你的第一个预设吧～
           </p>
         </div>
       </Card>
@@ -226,7 +232,7 @@ function getQualityLabel(quality: number): string {
           </div>
           <div
             v-if="presetsStore.activePresetId === preset.id"
-            class="text-xs text-primary-600 px-2 py-1 rounded bg-primary-100"
+            class="text-xs text-teal-600 px-2 py-1 rounded bg-teal-100"
           >
             使用中
           </div>
@@ -234,7 +240,7 @@ function getQualityLabel(quality: number): string {
 
         <div class="text-sm text-text-secondary mb-4 space-y-2">
           <div class="flex gap-2 items-center">
-            <div class="i-carbon-video" />
+            <Video :size="16" />
             <span>{{ getQualityLabel(preset.config.videoQuality) }}</span>
           </div>
           <div class="flex gap-3">
@@ -253,7 +259,7 @@ function getQualityLabel(quality: number): string {
             应用
           </Button>
           <Button variant="secondary" @click="handleDeletePreset(preset.id)">
-            <div class="i-carbon-trash-can" />
+            <Trash2 :size="16" />
           </Button>
         </div>
       </Card>

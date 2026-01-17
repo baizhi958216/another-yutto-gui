@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { Loader2 } from 'lucide-vue-next'
+
 defineProps<{
   variant?: 'primary' | 'secondary'
   disabled?: boolean
@@ -19,7 +21,7 @@ defineEmits<{
     :disabled="disabled || loading"
     @click="$emit('click')"
   >
-    <div v-if="loading" class="i-carbon-loading mr-2 inline-block animate-spin" />
+    <Loader2 v-if="loading" :size="20" class="mr-2 inline-block animate-spin" />
     <slot />
   </button>
 </template>
