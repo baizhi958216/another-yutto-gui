@@ -107,10 +107,7 @@ function getDownloadTags(task: any): string[] {
 
 <template>
   <div class="page-container">
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-2xl text-text-primary font-bold">
-        下载队列
-      </h2>
+    <div class="mb-4 flex items-center justify-end">
       <Button
         v-if="queueStore.completedTasks.length > 0"
         variant="secondary"

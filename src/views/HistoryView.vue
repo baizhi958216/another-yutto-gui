@@ -34,58 +34,25 @@ function handleDeleteEntry(id: string) {
 
 <template>
   <div class="page-container">
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-2xl text-text-primary font-bold">
-        下载历史
-      </h2>
-      <div class="flex gap-2 items-center">
-        <span class="text-sm text-text-secondary">
-          共 {{ historyStore.totalCount }} 条记录
-        </span>
-        <Button
-          v-if="historyStore.totalCount > 0"
-          variant="secondary"
-          @click="handleClearHistory"
-        >
-          清空历史
-        </Button>
-      </div>
-    </div>
-
     <!-- 搜索和筛选 -->
-    <Card class="mb-4">
-      <div class="flex gap-3">
-        <div class="flex-1 relative">
-          <Input
-            v-model="searchQuery"
-            placeholder="搜索标题或链接..."
-            class="pl-10 flex-1"
-            @keyup.enter="handleSearch"
-          />
-          <Search :size="18" class="text-gray-400 left-3 top-1/2 absolute -translate-y-1/2" />
-        </div>
-        <select
-          v-model="historyStore.sortBy"
-          class="input-base w-32"
-          @change="historyStore.setSortBy(historyStore.sortBy)"
-        >
-          <option
-            v-for="option in sortOptions"
-            :key="option.value"
-            :value="option.value"
-          >
-            {{ option.label }}
-          </option>
-        </select>
-        <Button variant="primary" @click="handleSearch">
-          搜索
-        </Button>
+    <div class="mb-5 flex gap-3">
+      <div class="flex-1 relative">
+        <Input
+          v-model="searchQuery"
+          placeholder="搜索标题或链接..."
+          class="pl-10 flex-1"
+          @keyup.enter="handleSearch"
+        />
+        <Search :size="18" class="text-gray-400 left-3 top-1/2 absolute -translate-y-1/2" />
       </div>
-    </Card>
+      <Button variant="primary" @click="handleSearch">
+        搜索
+      </Button>
+    </div>
 
     <!-- 空状态 -->
     <Card v-if="historyStore.filteredEntries.length === 0">
-      <div class="text-center opacity-50 flex flex-col min-h-[60vh] items-center justify-center">
+      <div class="text-center opacity-50 flex flex-col min-h-[30vh] items-center justify-center">
         <div class="mb-6 rounded-full bg-gray-50 flex h-32 w-32 items-center justify-center">
           <span class="text-5xl">🕰️</span>
         </div>

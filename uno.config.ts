@@ -44,14 +44,14 @@ export default defineConfig({
   },
   shortcuts: {
     // 按钮样式
-    'btn': 'px-4 py-2 rounded-xl inline-block bg-teal-500 text-white cursor-pointer hover:bg-teal-600 disabled:cursor-default disabled:bg-gray-600 disabled:opacity-50 transition-all active:scale-95',
-    'btn-primary': 'bg-teal-500 hover:bg-teal-600 text-white shadow-lg shadow-teal-100 px-4 py-2 rounded-xl transition-all active:scale-95 cursor-pointer',
-    'btn-secondary': 'bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-xl transition-all active:scale-95 cursor-pointer',
+    'btn': 'px-4 py-2 rounded inline-block bg-teal-500 text-white cursor-pointer hover:bg-teal-600 disabled:cursor-default disabled:bg-gray-600 disabled:opacity-50 transition-all active:scale-95',
+    'btn-primary': 'bg-teal-500 hover:bg-teal-600 text-white shadow-lg shadow-teal-100 px-4 py-2 rounded transition-all active:scale-95 cursor-pointer',
+    'btn-secondary': 'bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded transition-all active:scale-95 cursor-pointer',
     // 卡片样式
-    'card': 'bg-white rounded-3xl border border-gray-100 shadow-sm p-6',
+    'card': 'bg-white rounded-2xl border border-gray-100 shadow-sm p-6',
     'card-hover': 'bg-white rounded-3xl border border-gray-100 shadow-sm p-6 hover:shadow-lg transition-all cursor-pointer',
     // 输入框样式
-    'input-base': 'w-full px-4 py-2.5 bg-white border border-gray-100 rounded-2xl focus:ring-2 ring-teal-100 outline-none shadow-sm transition-all',
+    'input-base': 'w-full px-4 py-2.5 bg-white border border-gray-100 rounded-xl focus:ring-2 ring-teal-100 outline-none shadow-sm transition-all',
     // 页面容器
     'page-container': 'mx-auto max-w-6xl p-6',
     // 渐变背景

@@ -70,16 +70,6 @@ onMounted(async () => {
 
 <template>
   <div class="page-container">
-    <!-- Section Header -->
-    <div class="mb-8 flex gap-4 items-center">
-      <div class="text-white rounded-2xl bg-teal-500 flex h-12 w-12 shadow-lg shadow-teal-100 items-center justify-center">
-        <Settings :size="24" />
-      </div>
-      <h2 class="text-2xl text-gray-800 font-bold">
-        偏好设置
-      </h2>
-    </div>
-
     <div class="space-y-4">
       <!-- 下载设置 -->
       <Card>
