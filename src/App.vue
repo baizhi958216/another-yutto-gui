@@ -15,7 +15,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="bg-bg-secondary flex flex-col h-screen">
+  <div class="bg-bg-secondary flex flex-col h-screen overflow-hidden">
     <!-- Custom Title Bar -->
     <TitleBar />
 

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { Folder, Settings, ShieldCheck, Zap } from 'lucide-vue-next'
+import { Folder, ShieldCheck, Zap } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import Button from '@/components/common/Button.vue'
 import Card from '@/components/common/Card.vue'

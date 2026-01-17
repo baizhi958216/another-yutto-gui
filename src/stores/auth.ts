@@ -1,7 +1,7 @@
-import { defineStore } from 'pinia'
-import { ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -24,7 +24,8 @@ export const useAuthStore = defineStore('auth', () => {
         await checkVipStatus()
         unlisten()
       })
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Failed to open login window:', error)
       throw error
     }
@@ -38,12 +39,14 @@ export const useAuthStore = defineStore('auth', () => {
         isLoggedIn.value = true
         // Check VIP status after loading SESSDATA
         await checkVipStatus()
-      } else {
+      }
+      else {
         sessdata.value = null
         isLoggedIn.value = false
         isVip.value = false
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Failed to load SESSDATA:', error)
       sessdata.value = null
       isLoggedIn.value = false
@@ -69,10 +72,12 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       return isValid
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Failed to validate SESSDATA:', error)
       return false
-    } finally {
+    }
+    finally {
       isValidating.value = false
     }
   }
@@ -83,7 +88,8 @@ export const useAuthStore = defineStore('auth', () => {
       sessdata.value = null
       isLoggedIn.value = false
       isVip.value = false
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Failed to logout:', error)
       throw error
     }
@@ -101,7 +107,8 @@ export const useAuthStore = defineStore('auth', () => {
       })
       isVip.value = vipStatus
       return vipStatus
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Failed to check VIP status:', error)
       isVip.value = false
       return false

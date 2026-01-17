@@ -3,8 +3,8 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { ApiService } from '@/services/api'
 import { normalizeBilibiliUrl, validateBilibiliUrl } from '@/utils/validate'
-import { useSettingsStore } from './settings'
 import { useAuthStore } from './auth'
+import { useSettingsStore } from './settings'
 
 export const useDownloadStore = defineStore('download', () => {
   // State
