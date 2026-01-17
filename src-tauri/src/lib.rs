@@ -47,10 +47,6 @@ pub fn run() {
             auth::clear_auth,
             auth::open_login_window,
             auth::check_vip_status,
-            // Preset commands
-            preset::save_preset,
-            preset::get_presets,
-            preset::delete_preset,
             // History commands
             history::add_to_history,
             history::get_history,

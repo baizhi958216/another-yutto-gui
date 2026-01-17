@@ -35,15 +35,6 @@ const router = createRouter({
       },
     },
     {
-      path: '/presets',
-      name: 'presets',
-      component: () => import('@/views/PresetsView.vue'),
-      meta: {
-        title: '预设',
-        icon: 'i-carbon-save',
-      },
-    },
-    {
       path: '/settings',
       name: 'settings',
       component: () => import('@/views/SettingsView.vue'),

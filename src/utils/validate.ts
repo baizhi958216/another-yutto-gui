@@ -41,15 +41,6 @@ export function validatePath(path: string): boolean {
 }
 
 /**
- * 验证预设名称
- * @param name 预设名称
- * @returns 是否为有效的预设名称
- */
-export function validatePresetName(name: string): boolean {
-  return name.length > 0 && name.length <= 50
-}
-
-/**
  * 验证视频质量值
  * @param quality 质量值
  * @returns 是否为有效的质量值

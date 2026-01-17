@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { Bookmark, Download, History, ListOrdered, Settings } from 'lucide-vue-next'
+import { Download, History, ListOrdered, Settings } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -10,7 +10,6 @@ const navItems = computed(() => [
   { name: 'download', label: '下载', icon: Download },
   { name: 'queue', label: '队列', icon: ListOrdered },
   { name: 'history', label: '历史', icon: History },
-  { name: 'presets', label: '预设', icon: Bookmark },
   { name: 'settings', label: '设置', icon: Settings },
 ])
 

@@ -6,10 +6,8 @@ import Card from '@/components/common/Card.vue'
 import Input from '@/components/common/Input.vue'
 import { useDownload } from '@/composables/useDownload'
 import { useDownloadStore } from '@/stores/download'
-import { usePresetsStore } from '@/stores/presets'
 
 const downloadStore = useDownloadStore()
-const presetsStore = usePresetsStore()
 const { submitDownload } = useDownload()
 
 // Sync URL with store to persist across route changes
