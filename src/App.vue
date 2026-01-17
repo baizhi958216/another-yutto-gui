@@ -2,6 +2,7 @@
 import { onMounted } from 'vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppNav from '@/components/layout/AppNav.vue'
+import TitleBar from '@/components/layout/TitleBar.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
@@ -14,6 +15,9 @@ onMounted(async () => {
 
 <template>
   <div class="bg-bg-secondary flex flex-col h-screen">
+    <!-- Custom Title Bar -->
+    <TitleBar />
+
     <!-- Header -->
     <AppHeader />
 
