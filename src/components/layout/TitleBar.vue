@@ -29,7 +29,7 @@ async function closeWindow() {
 </script>
 
 <template>
-  <div class="px-6 border-b border-gray-50 bg-white flex select-none items-center relative">
+  <div class="bg-white flex select-none items-center relative">
     <div data-tauri-drag-region class="flex w-full items-center justify-between">
       <!-- App Branding -->
       <div class="flex gap-2 items-center relative z--1">
@@ -37,27 +37,27 @@ async function closeWindow() {
           <Sparkles :size="14" />
         </div>
         <span class="text-sm text-teal-600 tracking-wide font-bold">yutto</span>
-        <span class="text-[10px] bg-teal-50 text-teal-400 px-1.5 py-0.5 rounded font-bold uppercase">GUI</span>
+        <span class="text-[10px] text-teal-400 font-bold px-1.5 py-0.5 rounded bg-teal-50 uppercase">GUI</span>
       </div>
 
       <!-- Window Controls -->
       <div class="flex gap-0">
         <button
-          class="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-50 transition-colors border-none bg-transparent flex h-10 w-12 cursor-pointer items-center justify-center"
+          class="text-gray-400 p-1 border-none bg-transparent flex h-10 w-12 cursor-pointer transition-colors items-center justify-center hover:text-gray-600 hover:bg-gray-50"
           aria-label="Minimize"
           @click="minimizeWindow"
         >
           <Minus :size="14" />
         </button>
         <button
-          class="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-50 transition-colors border-none bg-transparent flex h-10 w-12 cursor-pointer items-center justify-center"
+          class="text-gray-400 p-1 border-none bg-transparent flex h-10 w-12 cursor-pointer transition-colors items-center justify-center hover:text-gray-600 hover:bg-gray-50"
           aria-label="Maximize"
           @click="toggleMaximize"
         >
           <Square :size="14" />
         </button>
         <button
-          class="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1 rounded-full transition-colors border-none bg-transparent flex h-10 w-12 cursor-pointer items-center justify-center"
+          class="text-gray-400 p-1 border-none bg-transparent flex h-10 w-12 cursor-pointer transition-colors items-center justify-center hover:text-red-500 hover:bg-red-50"
           aria-label="Close"
           @click="closeWindow"
         >
