@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { Download, Heart, History, ListOrdered, Settings, Sparkles } from 'lucide-vue-next'
+import { Download, History, ListOrdered, Settings } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 

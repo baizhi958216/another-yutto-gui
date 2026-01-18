@@ -4,6 +4,7 @@ import { onMounted, ref } from 'vue'
 import Button from '@/components/common/Button.vue'
 import Card from '@/components/common/Card.vue'
 import Input from '@/components/common/Input.vue'
+import Select from '@/components/common/Select.vue'
 import { useToast } from '@/composables/useToast'
 import { selectFile, selectFolder } from '@/services/tauri'
 import { useAuthStore } from '@/stores/auth'
@@ -209,14 +210,13 @@ onMounted(async () => {
           <label class="text-sm text-text-primary font-medium mb-2 block">
             主题
           </label>
-          <select v-model="localSettings.theme" class="input-base">
-            <option value="light">
-              浅色
-            </option>
-            <option value="dark">
-              深色（开发中）
-            </option>
-          </select>
+          <Select
+            v-model="localSettings.theme"
+            :options="[
+              { label: '浅色', value: 'light' },
+              { label: '深色（开发中）', value: 'dark' },
+            ]"
+          />
         </div>
       </Card>
 
@@ -229,14 +229,13 @@ onMounted(async () => {
           <label class="text-sm text-text-primary font-medium mb-2 block">
             界面语言
           </label>
-          <select v-model="localSettings.language" class="input-base">
-            <option value="zh-CN">
-              简体中文
-            </option>
-            <option value="en-US">
-              English (开发中)
-            </option>
-          </select>
+          <Select
+            v-model="localSettings.language"
+            :options="[
+              { label: '简体中文', value: 'zh-CN' },
+              { label: 'English (开发中)', value: 'en-US' },
+            ]"
+          />
         </div>
       </Card>
 

@@ -2,8 +2,8 @@
 import { Search } from 'lucide-vue-next'
 import { computed, onMounted, ref, watch } from 'vue'
 import Button from '@/components/common/Button.vue'
-import Card from '@/components/common/Card.vue'
 import Input from '@/components/common/Input.vue'
+import Select from '@/components/common/Select.vue'
 import { useDownload } from '@/composables/useDownload'
 import { useDownloadStore } from '@/stores/download'
 
@@ -170,9 +170,17 @@ onMounted(() => {
 <template>
   <div
     class="page-container flex h-full justify-center"
-    :class="`${downloadStore.videoInfo ? '' : 'items-center '}`"
   >
     <div class="w-full space-y-4">
+      <!-- Welcome Section -->
+      <div v-if="!downloadStore.videoInfo" class="mb-10 text-center">
+        <div class="mb-6 animate-bounce">
+          <span class="text-6xl">✨</span>
+        </div>
+        <h1 class="text-3xl text-gray-800 font-extrabold mb-2">
+          Another Yutto GUI
+        </h1>
+      </div>
       <!-- URL 输入 -->
       <div>
         <div class="flex gap-2">
@@ -232,20 +240,14 @@ onMounted(() => {
               仅视频
             </Button>
           </div>
-          <select
+          <Select
             v-model="downloadStore.currentConfig.videoQuality"
-            class="input-base"
-          >
-            <option
-              v-for="option in qualityOptions"
-              :key="option.quality"
-              :value="option.quality"
-              :disabled="!option.available"
-              :class="{ 'text-text-tertiary': !option.available }"
-            >
-              {{ option.displayText }}
-            </option>
-          </select>
+            :options="qualityOptions.map(option => ({
+              label: option.displayText,
+              value: option.quality,
+              disabled: !option.available,
+            }))"
+          />
         </div>
 
         <div>
@@ -260,20 +262,14 @@ onMounted(() => {
               仅音频
             </Button>
           </div>
-          <select
+          <Select
             v-model="downloadStore.currentConfig.audioQuality"
-            class="input-base"
-          >
-            <option
-              v-for="option in audioQualityOptions"
-              :key="option.quality"
-              :value="option.quality"
-              :disabled="!option.available"
-              :class="{ 'text-text-tertiary': !option.available }"
-            >
-              {{ option.displayText }}
-            </option>
-          </select>
+            :options="audioQualityOptions.map(option => ({
+              label: option.displayText,
+              value: option.quality,
+              disabled: !option.available,
+            }))"
+          />
         </div>
 
         <div class="flex gap-4">

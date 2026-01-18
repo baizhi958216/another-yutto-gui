@@ -52,6 +52,8 @@ export default defineConfig({
     'card-hover': 'bg-white rounded-3xl border border-gray-100 shadow-sm p-6 hover:shadow-lg transition-all cursor-pointer',
     // 输入框样式
     'input-base': 'w-full px-4 py-2.5 bg-white border border-gray-100 rounded-xl focus:ring-2 ring-teal-100 outline-none shadow-sm transition-all',
+    // 下拉框样式
+    'select-base': 'w-full px-4 py-2.5 bg-white border border-gray-100 rounded-xl focus:ring-2 ring-teal-100 outline-none shadow-sm transition-all cursor-pointer',
     // 页面容器
     'page-container': 'mx-auto max-w-6xl p-6',
     // 渐变背景
