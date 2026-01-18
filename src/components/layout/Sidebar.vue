@@ -24,16 +24,16 @@ function navigateTo(name: string) {
   <nav data-tauri-drag-region class="py-8 border-r border-gray-100 bg-[#F8FBFA] flex flex-col w-20 items-center md:w-64">
     <!-- Logo Section -->
     <div class="mb-8 flex flex-col gap-3 items-center">
-      <div class="rounded-3xl bg-white flex h-14 w-14 cursor-pointer shadow-sm transition-all duration-300 items-center justify-center hover:rotate-6">
+      <div class="flex w-12 transition-all duration-300 items-center justify-center md:h-34 md:w-34 hover:rotate-6">
         <div class="text-teal-500 flex items-center justify-center">
-          <Sparkles :size="24" />
+          <img src="/logo.png" alt="logo" class="cursor-pointer">
         </div>
       </div>
-      <div class="text-center hidden md:block">
+      <!-- <div class="text-center hidden md:block">
         <h1 class="text-lg text-gray-800 font-bold">
           yutto GUI
         </h1>
-      </div>
+      </div> -->
     </div>
 
     <!-- Navigation Buttons -->
