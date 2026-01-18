@@ -1,8 +1,7 @@
 <script lang="ts" setup>
 import { onMounted } from 'vue'
 import ToastContainer from '@/components/common/ToastContainer.vue'
-import AppHeader from '@/components/layout/AppHeader.vue'
-import AppNav from '@/components/layout/AppNav.vue'
+import Sidebar from '@/components/layout/Sidebar.vue'
 import TitleBar from '@/components/layout/TitleBar.vue'
 import { useAuthStore } from '@/stores/auth'
 
@@ -15,26 +14,23 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="bg-bg-secondary flex flex-col h-screen overflow-hidden">
-    <!-- Custom Title Bar -->
-    <TitleBar />
-
-    <!-- Header -->
-    <AppHeader />
-
-    <!-- Navigation -->
-    <AppNav />
-
-    <!-- Main Content with Router View -->
-    <main class="flex-1 overflow-auto">
-      <RouterView v-slot="{ Component }">
-        <Transition name="fade" mode="out-in">
-          <component :is="Component" />
-        </Transition>
-      </RouterView>
-    </main>
-
-    <!-- Toast Container -->
+  <div class="bg-white flex h-screen overflow-hidden">
+    <Sidebar />
+    <div class="flex flex-1 flex-col min-w-0">
+      <TitleBar />
+      <main class="p-8 flex-1 relative overflow-x-hidden overflow-y-auto">
+        <div class="mx-auto h-full max-w-4xl">
+          <RouterView v-slot="{ Component }">
+            <Transition name="fade" mode="out-in">
+              <component :is="Component" />
+            </Transition>
+          </RouterView>
+        </div>
+        <!-- Background decorative blobs -->
+        <div class="rounded-full bg-teal-100/30 h-64 w-64 pointer-events-none right-[-5%] top-[-10%] absolute blur-3xl -z-10" />
+        <div class="rounded-full bg-blue-100/20 h-80 w-80 pointer-events-none bottom-[-10%] left-[-5%] absolute blur-3xl -z-10" />
+      </main>
+    </div>
     <ToastContainer />
   </div>
 </template>
