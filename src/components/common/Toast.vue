@@ -35,9 +35,9 @@ const iconColor = computed(() => {
 </script>
 
 <template>
-  <div class="p-4 rounded-2xl bg-white flex gap-3 max-w-md min-w-80 shadow-lg items-center">
+  <div class="p-4 rounded-2xl bg-bg-secondary flex gap-3 max-w-md min-w-80 shadow-lg items-center">
     <component :is="iconComponent" :size="24" :class="iconColor" />
-    <p class="text-text-dark flex-1">
+    <p class="text-text-primary flex-1">
       {{ message }}
     </p>
   </div>

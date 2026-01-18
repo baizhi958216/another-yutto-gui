@@ -7,7 +7,7 @@ defineProps<{
 
 <template>
   <div class="card" :class="[hoverable ? 'hover:shadow-lg transition-all cursor-pointer' : '']">
-    <h3 v-if="title" class="text-text-dark text-lg font-semibold mb-3">
+    <h3 v-if="title" class="text-lg text-text-primary font-semibold mb-3">
       {{ title }}
     </h3>
     <slot />

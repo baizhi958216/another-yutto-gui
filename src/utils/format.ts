@@ -12,6 +12,20 @@ export function formatFileSize(bytes: number): string {
   return `${(bytes / k ** i).toFixed(2)} ${sizes[i]}`
 }
 
+function resolveLocale(): string {
+  if (typeof document !== 'undefined') {
+    const lang = document.documentElement.lang
+    if (lang) {
+      return lang
+    }
+  }
+  return 'zh-CN'
+}
+
+function isEnglishLocale(locale: string): boolean {
+  return locale.toLowerCase().startsWith('en')
+}
+
 /**
  * 格式化时长
  * @param seconds 秒数
@@ -33,7 +47,7 @@ export function formatDuration(seconds: number): string {
  */
 export function formatDate(timestamp: number): string {
   const date = new Date(timestamp)
-  return date.toLocaleDateString('zh-CN', {
+  return date.toLocaleDateString(resolveLocale(), {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -54,14 +68,16 @@ export function formatRelativeTime(timestamp: number): string {
   const minutes = Math.floor(seconds / 60)
   const hours = Math.floor(minutes / 60)
   const days = Math.floor(hours / 24)
+  const locale = resolveLocale()
+  const isEnglish = isEnglishLocale(locale)
 
   if (seconds < 60)
-    return '刚刚'
+    return isEnglish ? 'just now' : '刚刚'
   if (minutes < 60)
-    return `${minutes}分钟前`
+    return isEnglish ? `${minutes} minutes ago` : `${minutes}分钟前`
   if (hours < 24)
-    return `${hours}小时前`
+    return isEnglish ? `${hours} hours ago` : `${hours}小时前`
   if (days < 7)
-    return `${days}天前`
+    return isEnglish ? `${days} days ago` : `${days}天前`
   return formatDate(timestamp)
 }

@@ -21,7 +21,7 @@ function navigateTo(name: string) {
 </script>
 
 <template>
-  <nav data-tauri-drag-region class="py-8 border-r border-gray-100 bg-[#F8FBFA] flex flex-col w-20 items-center md:w-64">
+  <nav data-tauri-drag-region class="py-8 border-r border-border-primary bg-bg-secondary flex flex-col w-20 items-center md:w-64">
     <!-- Logo Section -->
     <div class="mb-8 flex flex-col gap-3 items-center">
       <div class="flex w-12 transition-all duration-300 items-center justify-center md:h-34 md:w-34 hover:rotate-6">
@@ -30,7 +30,7 @@ function navigateTo(name: string) {
         </div>
       </div>
       <!-- <div class="text-center hidden md:block">
-        <h1 class="text-lg text-gray-800 font-bold">
+        <h1 class="text-lg text-text-primary font-bold">
           yutto GUI
         </h1>
       </div> -->
@@ -45,7 +45,7 @@ function navigateTo(name: string) {
         :class="[
           isActive(item.name)
             ? 'bg-teal-500 text-white shadow-lg shadow-teal-200/50'
-            : 'text-gray-500 hover:bg-teal-50 hover:text-teal-600',
+            : 'text-text-secondary hover:bg-bg-tertiary hover:text-teal-600',
         ]"
         @click="navigateTo(item.name)"
       >

@@ -1,6 +1,10 @@
 <script lang="ts" setup>
-defineProps<{
+const props = defineProps<{
   modelValue: string | number
+  modelModifiers?: {
+    number?: boolean
+    trim?: boolean
+  }
   placeholder?: string
   type?: string
   disabled?: boolean
@@ -9,9 +13,22 @@ defineProps<{
   max?: string
 }>()
 
-defineEmits<{
-  'update:modelValue': [value: string]
+const emit = defineEmits<{
+  'update:modelValue': [value: string | number]
 }>()
+
+function handleInput(event: Event) {
+  let value = (event.target as HTMLInputElement).value
+  if (props.modelModifiers?.trim) {
+    value = value.trim()
+  }
+  if (props.modelModifiers?.number) {
+    const parsed = Number(value)
+    emit('update:modelValue', Number.isNaN(parsed) ? value : parsed)
+    return
+  }
+  emit('update:modelValue', value)
+}
 </script>
 
 <template>
@@ -24,6 +41,6 @@ defineEmits<{
     :min="min"
     :max="max"
     class="input-base"
-    @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
+    @input="handleInput"
   >
 </template>

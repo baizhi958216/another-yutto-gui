@@ -40,6 +40,7 @@ pub fn run() {
             download::resume_download,
             download::cancel_download,
             download::get_active_downloads,
+            download::set_max_concurrent_downloads,
             // Auth commands
             auth::save_sessdata,
             auth::get_sessdata,
@@ -57,6 +58,8 @@ pub fn run() {
             system::open_file_location,
             system::get_settings,
             system::save_settings,
+            system::get_file_size,
+            system::find_newest_file_in_dir,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -20,8 +20,8 @@ export class ApiService {
   /**
    * 创建下载任务
    */
-  static async createDownloadTask(config: DownloadConfig): Promise<string> {
-    return await tauri.startDownload(config)
+  static async createDownloadTask(config: DownloadConfig, videoInfo?: { title: string, thumbnail: string }): Promise<string> {
+    return await tauri.startDownload(config, videoInfo)
   }
 
   /**

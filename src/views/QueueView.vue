@@ -5,14 +5,11 @@ import Button from '@/components/common/Button.vue'
 import Card from '@/components/common/Card.vue'
 import ProgressBar from '@/components/common/ProgressBar.vue'
 import { useDownload } from '@/composables/useDownload'
-import { useTaskPolling } from '@/composables/useTaskPolling'
 import { useQueueStore } from '@/stores/queue'
+import { formatAudioQuality, formatVideoQuality } from '@/utils/quality'
 
 const queueStore = useQueueStore()
 const { pauseDownload, resumeDownload, cancelDownload } = useDownload()
-
-// 启动任务轮询，每秒更新一次
-useTaskPolling(1000)
 
 const allTasks = computed(() => queueStore.tasks)
 const hasActiveTasks = computed(() => allTasks.value.length > 0)
@@ -37,38 +34,6 @@ function getStatusColor(status: string) {
     error: 'text-error',
   }
   return colorMap[status] || 'text-text-secondary'
-}
-
-// 格式化视频质量显示
-function formatVideoQuality(quality: number): string {
-  const qualityMap: Record<number, string> = {
-    127: '8K',
-    126: '杜比视界',
-    125: 'HDR',
-    120: '4K',
-    116: '1080P60',
-    112: '1080P+',
-    100: '智能修复',
-    80: '1080P',
-    74: '720P60',
-    64: '720P',
-    32: '480P',
-    16: '360P',
-  }
-  return qualityMap[quality] || `${quality}P`
-}
-
-// 格式化音频质量显示
-function formatAudioQuality(quality: number): string {
-  const qualityMap: Record<number, string> = {
-    30251: 'Hi-Res',
-    30255: '杜比音效',
-    30250: '杜比全景声',
-    30280: '320K',
-    30232: '132K',
-    30216: '64K',
-  }
-  return qualityMap[quality] || `${quality}`
 }
 
 // 获取下载参数标签
@@ -118,19 +83,19 @@ function getDownloadTags(task: any): string[] {
     </div>
 
     <!-- 空状态 -->
-    <Card v-if="!hasActiveTasks">
+    <div v-if="!hasActiveTasks">
       <div class="text-center opacity-50 flex flex-col min-h-[60vh] items-center justify-center">
-        <div class="mb-6 rounded-full bg-gray-50 flex h-32 w-32 items-center justify-center">
+        <div class="mb-6 rounded-full bg-bg-tertiary flex h-32 w-32 items-center justify-center">
           <span class="text-5xl">🥡</span>
         </div>
-        <h2 class="text-xl text-gray-500 font-bold">
+        <h2 class="text-xl text-text-secondary font-bold">
           暂时没有正在下载的任务哦～
         </h2>
-        <p class="text-sm text-gray-400 mt-2">
+        <p class="text-sm text-text-tertiary mt-2">
           快去主页粘贴个链接试试吧！
         </p>
       </div>
-    </Card>
+    </div>
 
     <!-- 任务列表 -->
     <div v-else class="space-y-3">
@@ -145,7 +110,7 @@ function getDownloadTags(task: any): string[] {
             v-if="task.videoInfo?.thumbnail"
             :src="task.videoInfo.thumbnail"
             :alt="task.videoInfo.title"
-            class="rounded-2xl h-16 w-24 object-cover"
+            class="rounded h-16 w-24 object-cover"
             referrerpolicy="no-referrer"
           >
           <div v-else class="rounded-2xl bg-bg-tertiary flex h-16 w-24 items-center justify-center">

@@ -51,11 +51,11 @@ onBeforeUnmount(() => {
   <div ref="selectRef" class="w-full relative">
     <!-- 触发器 -->
     <div
-      class="px-4 py-2.5 border border-gray-100 rounded-xl bg-white flex w-full cursor-pointer shadow-sm transition-all items-center justify-between"
+      class="px-4 py-2.5 border border-border-primary rounded-xl bg-bg-secondary flex w-full cursor-pointer shadow-sm transition-all items-center justify-between"
       :class="{
         'border-teal-500 ring-2 ring-teal-100': isOpen,
         'hover:border-teal-500 hover:ring-2 hover:ring-teal-100': !disabled,
-        'opacity-50 cursor-not-allowed bg-gray-50': disabled,
+        'opacity-50 cursor-not-allowed bg-bg-tertiary': disabled,
       }"
       @click="toggleDropdown"
     >
@@ -75,7 +75,7 @@ onBeforeUnmount(() => {
       <div
         v-if="isOpen"
         ref="dropdownRef"
-        class="p-1 border border-gray-100 rounded-xl bg-white max-h-68 shadow-lg left-0 right-0 top-[calc(100%+0.5rem)] absolute z-1000 overflow-y-auto"
+        class="p-1 border border-border-primary rounded-xl bg-bg-secondary max-h-68 shadow-lg left-0 right-0 top-[calc(100%+0.5rem)] absolute z-1000 overflow-y-auto"
       >
         <div
           v-for="option in options"
@@ -124,11 +124,11 @@ onBeforeUnmount(() => {
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #e5e7eb;
+  background: var(--color-border-primary);
   border-radius: 0.25rem;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: #d1d5db;
+  background: var(--color-border-secondary);
 }
 </style>

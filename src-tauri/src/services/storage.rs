@@ -14,7 +14,7 @@ impl Storage {
     pub fn init_db(&self) -> Result<(), rusqlite::Error> {
         let conn = Connection::open(&self.db_path)?;
 
-        // Create history table
+        // Create history table with new schema
         conn.execute(
             "CREATE TABLE IF NOT EXISTS history (
                 id TEXT PRIMARY KEY,
@@ -23,11 +23,43 @@ impl Storage {
                 thumbnail TEXT,
                 download_date INTEGER NOT NULL,
                 file_path TEXT NOT NULL,
-                quality TEXT,
-                size INTEGER
+                video_quality INTEGER NOT NULL,
+                audio_quality INTEGER NOT NULL,
+                video_only INTEGER DEFAULT 0,
+                audio_only INTEGER DEFAULT 0,
+                size INTEGER DEFAULT 0
             )",
             [],
         )?;
+
+        // Migrate old data if quality column exists
+        let has_old_quality = conn
+            .prepare("SELECT quality FROM history LIMIT 1")
+            .is_ok();
+
+        if has_old_quality {
+            // Drop old table and recreate with new schema
+            conn.execute("DROP TABLE IF EXISTS history_old", [])?;
+            conn.execute("ALTER TABLE history RENAME TO history_old", [])?;
+            conn.execute(
+                "CREATE TABLE history (
+                    id TEXT PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    url TEXT NOT NULL,
+                    thumbnail TEXT,
+                    download_date INTEGER NOT NULL,
+                    file_path TEXT NOT NULL,
+                    video_quality INTEGER NOT NULL,
+                    audio_quality INTEGER NOT NULL,
+                    video_only INTEGER DEFAULT 0,
+                    audio_only INTEGER DEFAULT 0,
+                    size INTEGER DEFAULT 0
+                )",
+                [],
+            )?;
+            // Note: Old data will be lost, but this is acceptable for a development version
+            conn.execute("DROP TABLE history_old", [])?;
+        }
 
         // Create auth table
         conn.execute(
@@ -130,6 +162,117 @@ impl Storage {
     pub fn clear_sessdata(&self) -> Result<(), Box<dyn Error>> {
         let conn = Connection::open(&self.db_path)?;
         conn.execute("DELETE FROM auth", [])?;
+        Ok(())
+    }
+
+    // Add history entry
+    pub fn add_history_entry(&self, entry: &crate::models::history::HistoryEntry) -> Result<(), Box<dyn Error>> {
+        let conn = Connection::open(&self.db_path)?;
+        conn.execute(
+            "INSERT INTO history (id, title, url, thumbnail, download_date, file_path, video_quality, audio_quality, video_only, audio_only, size)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            rusqlite::params![
+                &entry.id,
+                &entry.title,
+                &entry.url,
+                &entry.thumbnail,
+                &entry.download_date,
+                &entry.file_path,
+                &entry.video_quality,
+                &entry.audio_quality,
+                entry.video_only.unwrap_or(false) as i32,
+                entry.audio_only.unwrap_or(false) as i32,
+                &entry.size,
+            ],
+        )?;
+        Ok(())
+    }
+
+    // Get history entries with pagination
+    pub fn get_history(&self, page: u32, page_size: u32) -> Result<Vec<crate::models::history::HistoryEntry>, Box<dyn Error>> {
+        let conn = Connection::open(&self.db_path)?;
+        let offset = page * page_size;
+
+        let mut stmt = conn.prepare(
+            "SELECT id, title, url, thumbnail, download_date, file_path, video_quality, audio_quality, video_only, audio_only, size
+             FROM history
+             ORDER BY download_date DESC
+             LIMIT ?1 OFFSET ?2"
+        )?;
+
+        let entries = stmt.query_map([page_size, offset], |row| {
+            Ok(crate::models::history::HistoryEntry {
+                id: row.get(0)?,
+                title: row.get(1)?,
+                url: row.get(2)?,
+                thumbnail: row.get(3)?,
+                download_date: row.get(4)?,
+                file_path: row.get(5)?,
+                video_quality: row.get(6)?,
+                audio_quality: row.get(7)?,
+                video_only: {
+                    let val: i32 = row.get(8)?;
+                    Some(val != 0)
+                },
+                audio_only: {
+                    let val: i32 = row.get(9)?;
+                    Some(val != 0)
+                },
+                size: row.get(10)?,
+            })
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(entries)
+    }
+
+    // Get all history entries
+    pub fn get_all_history(&self) -> Result<Vec<crate::models::history::HistoryEntry>, Box<dyn Error>> {
+        let conn = Connection::open(&self.db_path)?;
+
+        let mut stmt = conn.prepare(
+            "SELECT id, title, url, thumbnail, download_date, file_path, video_quality, audio_quality, video_only, audio_only, size
+             FROM history
+             ORDER BY download_date DESC"
+        )?;
+
+        let entries = stmt.query_map([], |row| {
+            Ok(crate::models::history::HistoryEntry {
+                id: row.get(0)?,
+                title: row.get(1)?,
+                url: row.get(2)?,
+                thumbnail: row.get(3)?,
+                download_date: row.get(4)?,
+                file_path: row.get(5)?,
+                video_quality: row.get(6)?,
+                audio_quality: row.get(7)?,
+                video_only: {
+                    let val: i32 = row.get(8)?;
+                    Some(val != 0)
+                },
+                audio_only: {
+                    let val: i32 = row.get(9)?;
+                    Some(val != 0)
+                },
+                size: row.get(10)?,
+            })
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(entries)
+    }
+
+    // Delete history entry
+    pub fn delete_history_entry(&self, entry_id: &str) -> Result<(), Box<dyn Error>> {
+        let conn = Connection::open(&self.db_path)?;
+        conn.execute("DELETE FROM history WHERE id = ?1", [entry_id])?;
+        Ok(())
+    }
+
+    // Clear all history
+    pub fn clear_history(&self) -> Result<(), Box<dyn Error>> {
+        let conn = Connection::open(&self.db_path)?;
+        conn.execute("DELETE FROM history", [])?;
         Ok(())
     }
 }

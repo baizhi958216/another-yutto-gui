@@ -3,7 +3,6 @@ import { ApiService } from '@/services/api'
 import { useDownloadStore } from '@/stores/download'
 import { useHistoryStore } from '@/stores/history'
 import { useQueueStore } from '@/stores/queue'
-import { generateId } from '@/utils/helpers'
 import { useToast } from './useToast'
 
 /**
@@ -33,7 +32,10 @@ export function useDownload() {
 
     try {
       // 创建下载任务
-      const taskId = await ApiService.createDownloadTask(currentConfig)
+      const taskId = await ApiService.createDownloadTask(currentConfig, {
+        title: videoInfo.title,
+        thumbnail: videoInfo.thumbnail,
+      })
 
       const task: DownloadTask = {
         id: taskId,
@@ -46,6 +48,9 @@ export function useDownload() {
           title: videoInfo.title,
           thumbnail: videoInfo.thumbnail,
         },
+        totalSize: 0,
+        savedFilePath: undefined,
+        startTime: Date.now(),
       }
 
       // 添加到队列
@@ -103,30 +108,10 @@ export function useDownload() {
     }
   }
 
-  /**
-   * 完成下载后添加到历史
-   */
-  function completeDownload(taskId: string) {
-    const task = queueStore.tasks.find(t => t.id === taskId)
-    if (task && task.status === 'completed' && task.videoInfo) {
-      historyStore.addEntry({
-        id: generateId(),
-        title: task.videoInfo.title,
-        url: task.config.url,
-        thumbnail: task.videoInfo.thumbnail,
-        downloadDate: Date.now(),
-        filePath: task.config.downloadPath,
-        quality: `${task.config.videoQuality}P`,
-        size: 0, // 需要从后端获取实际文件大小
-      })
-    }
-  }
-
   return {
     submitDownload,
     pauseDownload,
     resumeDownload,
     cancelDownload,
-    completeDownload,
   }
 }

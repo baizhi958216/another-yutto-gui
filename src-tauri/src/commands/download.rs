@@ -1,4 +1,4 @@
-use crate::models::download::DownloadConfig;
+use crate::models::download::{DownloadConfig, VideoInfo};
 use crate::services::download_manager::DownloadManager;
 use std::sync::Arc;
 use tauri::State;
@@ -6,10 +6,11 @@ use tauri::State;
 #[tauri::command]
 pub async fn start_download(
     config: DownloadConfig,
+    video_info: Option<VideoInfo>,
     manager: State<'_, Arc<DownloadManager>>,
 ) -> Result<String, String> {
     let task_id = uuid::Uuid::new_v4().to_string();
-    manager.start_download(task_id.clone(), config).await?;
+    manager.start_download(task_id.clone(), config, video_info).await?;
     Ok(task_id)
 }
 
@@ -46,4 +47,14 @@ pub async fn get_active_downloads(
     let downloads = manager.active_downloads.lock().await;
     let tasks: Vec<_> = downloads.values().cloned().collect();
     serde_json::to_string(&tasks).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn set_max_concurrent_downloads(
+    max_concurrent: usize,
+    manager: State<'_, Arc<DownloadManager>>,
+) -> Result<(), String> {
+    manager.set_max_concurrent(max_concurrent);
+    manager.start_pending().await;
+    Ok(())
 }

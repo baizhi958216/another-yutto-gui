@@ -16,12 +16,12 @@ defineEmits<{
     <Transition name="modal">
       <div v-if="show" class="flex items-center inset-0 justify-center fixed z-50">
         <div class="bg-black bg-opacity-50 inset-0 absolute" @click="$emit('close')" />
-        <div class="mx-4 rounded-3xl bg-white max-h-90vh max-w-2xl w-full shadow-lg relative overflow-auto">
-          <div class="p-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 class="text-text-dark text-xl font-semibold">
+        <div class="mx-4 rounded-3xl bg-bg-secondary max-h-90vh max-w-2xl w-full shadow-lg relative overflow-auto">
+          <div class="p-4 border-b border-border-primary flex items-center justify-between">
+            <h2 class="text-xl text-text-primary font-semibold">
               {{ title }}
             </h2>
-            <button class="text-text-gray hover:text-text-dark transition-colors" @click="$emit('close')">
+            <button class="text-text-tertiary transition-colors hover:text-text-primary" @click="$emit('close')">
               <X :size="20" />
             </button>
           </div>

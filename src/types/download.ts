@@ -3,6 +3,7 @@ export interface DownloadConfig {
   videoQuality: number
   audioQuality: number
   downloadPath: string
+  yuttoCliPath?: string
   withDanmaku: boolean
   withSubtitle: boolean
   withCover: boolean
@@ -25,6 +26,9 @@ export interface DownloadTask {
     title: string
     thumbnail: string
   }
+  totalSize: number
+  savedFilePath?: string
+  startTime: number
 }
 
 export interface DownloadProgress {

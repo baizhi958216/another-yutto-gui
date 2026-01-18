@@ -196,7 +196,7 @@ onMounted(() => {
               class="pl-10 flex-1"
               @keyup.enter="handleFetchInfo"
             />
-            <Search :size="18" class="text-gray-400 left-3 top-1/2 absolute -translate-y-1/2" />
+            <Search :size="18" class="text-text-tertiary left-3 top-1/2 absolute -translate-y-1/2" />
           </div>
           <Button
             variant="primary"
@@ -212,7 +212,7 @@ onMounted(() => {
       </div>
 
       <!-- 视频信息预览 -->
-      <div v-if="downloadStore.videoInfo" class="p-4 border border-gray-100 rounded bg-white shadow-sm transition-all hover:shadow-lg">
+      <div v-if="downloadStore.videoInfo" class="p-4 border border-border-primary rounded bg-bg-secondary shadow-sm transition-all hover:shadow-lg">
         <div class="flex gap-4">
           <img
             :src="downloadStore.videoInfo.thumbnail"

@@ -1,12 +1,14 @@
 import type { HistoryEntry } from '@/types'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { addToHistory, clearHistory as clearHistoryBackend, deleteHistoryEntry, getHistory } from '@/services/tauri'
 
 export const useHistoryStore = defineStore('history', () => {
   // State
   const entries = ref<HistoryEntry[]>([])
   const filter = ref<string>('')
   const sortBy = ref<'date' | 'title' | 'size'>('date')
+  const isLoading = ref(false)
 
   // Getters
   const filteredEntries = computed(() => {
@@ -45,23 +47,64 @@ export const useHistoryStore = defineStore('history', () => {
   const totalCount = computed(() => entries.value.length)
 
   // Actions
-  function addEntry(entry: HistoryEntry) {
-    // 检查是否已存在
-    const exists = entries.value.some(e => e.id === entry.id)
-    if (!exists) {
-      entries.value.unshift(entry)
+  async function loadHistory() {
+    try {
+      isLoading.value = true
+      const history = await getHistory()
+      entries.value = history
+    }
+    catch (error) {
+      console.error('Failed to load history:', error)
+    }
+    finally {
+      isLoading.value = false
     }
   }
 
-  function removeEntry(id: string) {
-    const index = entries.value.findIndex(entry => entry.id === id)
-    if (index > -1) {
-      entries.value.splice(index, 1)
+  async function addEntry(entry: HistoryEntry) {
+    try {
+      // 检查是否已存在
+      const exists = entries.value.some(e => e.id === entry.id)
+      if (!exists) {
+        // 保存到后端
+        await addToHistory(entry)
+        // 添加到本地状态
+        entries.value.unshift(entry)
+      }
+    }
+    catch (error) {
+      console.error('Failed to add history entry:', error)
+      throw error
     }
   }
 
-  function clearHistory() {
-    entries.value = []
+  async function removeEntry(id: string) {
+    try {
+      // 从后端删除
+      await deleteHistoryEntry(id)
+      // 从本地状态删除
+      const index = entries.value.findIndex(entry => entry.id === id)
+      if (index > -1) {
+        entries.value.splice(index, 1)
+      }
+    }
+    catch (error) {
+      console.error('Failed to remove history entry:', error)
+      throw error
+    }
+  }
+
+  async function clearHistoryAction() {
+    try {
+      // 清空后端
+      await clearHistoryBackend()
+      // 清空本地状态
+      entries.value = []
+    }
+    catch (error) {
+      console.error('Failed to clear history:', error)
+      throw error
+    }
   }
 
   function setFilter(newFilter: string) {
@@ -77,17 +120,17 @@ export const useHistoryStore = defineStore('history', () => {
     entries,
     filter,
     sortBy,
+    isLoading,
     // Getters
     filteredEntries,
     totalSize,
     totalCount,
     // Actions
+    loadHistory,
     addEntry,
     removeEntry,
-    clearHistory,
+    clearHistory: clearHistoryAction,
     setFilter,
     setSortBy,
   }
-}, {
-  persist: true,
 })

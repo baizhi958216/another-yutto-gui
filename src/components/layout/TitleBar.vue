@@ -29,7 +29,7 @@ async function closeWindow() {
 </script>
 
 <template>
-  <div class="bg-white flex select-none items-center relative">
+  <div class="bg-bg-secondary flex select-none items-center relative">
     <div data-tauri-drag-region class="flex w-full items-center justify-between">
       <!-- App Branding -->
       <div class="flex gap-2 items-center relative z--1">
@@ -43,21 +43,21 @@ async function closeWindow() {
       <!-- Window Controls -->
       <div class="flex gap-0">
         <button
-          class="text-gray-400 p-1 border-none bg-transparent flex h-10 w-12 cursor-pointer transition-colors items-center justify-center hover:text-gray-600 hover:bg-gray-50"
+          class="text-text-tertiary p-1 border-none bg-transparent flex h-10 w-12 cursor-pointer transition-colors items-center justify-center hover:text-text-secondary hover:bg-bg-tertiary"
           aria-label="Minimize"
           @click="minimizeWindow"
         >
           <Minus :size="14" />
         </button>
         <button
-          class="text-gray-400 p-1 border-none bg-transparent flex h-10 w-12 cursor-pointer transition-colors items-center justify-center hover:text-gray-600 hover:bg-gray-50"
+          class="text-text-tertiary p-1 border-none bg-transparent flex h-10 w-12 cursor-pointer transition-colors items-center justify-center hover:text-text-secondary hover:bg-bg-tertiary"
           aria-label="Maximize"
           @click="toggleMaximize"
         >
           <Square :size="14" />
         </button>
         <button
-          class="text-gray-400 p-1 border-none bg-transparent flex h-10 w-12 cursor-pointer transition-colors items-center justify-center hover:text-red-500 hover:bg-red-50"
+          class="text-text-tertiary p-1 border-none bg-transparent flex h-10 w-12 cursor-pointer transition-colors items-center justify-center hover:text-red-500 hover:bg-red-50"
           aria-label="Close"
           @click="closeWindow"
         >

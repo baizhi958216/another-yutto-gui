@@ -5,6 +5,9 @@ export interface HistoryEntry {
   thumbnail: string
   downloadDate: number
   filePath: string
-  quality: string
+  videoQuality: number
+  audioQuality: number
+  videoOnly?: boolean
+  audioOnly?: boolean
   size: number
 }

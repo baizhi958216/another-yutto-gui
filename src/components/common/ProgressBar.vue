@@ -19,9 +19,9 @@ watch(() => props.progress, (newVal, oldVal) => {
 <template>
   <div class="w-full">
     <div v-if="showLabel" class="mb-1 flex items-center justify-between">
-      <span class="text-text-gray text-sm">{{ progressPercent.toFixed(1) }}%</span>
+      <span class="text-sm text-text-secondary">{{ progressPercent.toFixed(1) }}%</span>
     </div>
-    <div class="rounded-full bg-gray-100 h-2 w-full overflow-hidden">
+    <div class="rounded-full bg-bg-tertiary h-2 w-full overflow-hidden">
       <div
         class="h-full transition-all duration-1000 ease-out from-teal-300 to-teal-500 bg-gradient-to-r"
         :style="{ width: `${progressPercent}%` }"

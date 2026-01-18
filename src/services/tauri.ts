@@ -1,4 +1,5 @@
-import type { DownloadConfig, VideoInfo } from '@/types'
+import type { DownloadConfig, HistoryEntry, VideoInfo } from '@/types'
+
 import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 
@@ -29,11 +30,14 @@ export async function getVideoInfo(url: string, isVip?: boolean, sessdata?: stri
 /**
  * 开始下载
  * @param config 下载配置
+ * @param videoInfo 视频信息（可选）
+ * @param videoInfo.title 视频标题
+ * @param videoInfo.thumbnail 视频缩略图
  * @returns 任务 ID
  */
-export async function startDownload(config: DownloadConfig): Promise<string> {
+export async function startDownload(config: DownloadConfig, videoInfo?: { title: string, thumbnail: string }): Promise<string> {
   try {
-    return await invoke<string>('start_download', { config })
+    return await invoke<string>('start_download', { config, videoInfo })
   }
   catch (error) {
     console.error('Failed to start download:', error)
@@ -84,6 +88,20 @@ export async function cancelDownload(taskId: string): Promise<void> {
 }
 
 /**
+ * 设置最大并发下载数
+ * @param maxConcurrent 最大并发数
+ */
+export async function setMaxConcurrentDownloads(maxConcurrent: number): Promise<void> {
+  try {
+    await invoke('set_max_concurrent_downloads', { maxConcurrent })
+  }
+  catch (error) {
+    console.error('Failed to set max concurrent downloads:', error)
+    throw error
+  }
+}
+
+/**
  * 选择文件夹
  * @returns 选择的文件夹路径，如果取消则返回 null
  */
@@ -129,5 +147,103 @@ export async function openBilibiliLogin(): Promise<void> {
   catch (error) {
     console.error('Failed to open login window:', error)
     throw error
+  }
+}
+
+/**
+ * 添加历史记录
+ * @param entry 历史记录条目
+ */
+export async function addToHistory(entry: HistoryEntry): Promise<void> {
+  try {
+    await invoke('add_to_history', { entry })
+  }
+  catch (error) {
+    console.error('Failed to add to history:', error)
+    throw error
+  }
+}
+
+/**
+ * 获取历史记录
+ * @param page 页码（可选）
+ * @param pageSize 每页大小（可选）
+ * @returns 历史记录列表
+ */
+export async function getHistory(page?: number, pageSize?: number): Promise<HistoryEntry[]> {
+  try {
+    return await invoke<HistoryEntry[]>('get_history', { page, pageSize })
+  }
+  catch (error) {
+    console.error('Failed to get history:', error)
+    throw error
+  }
+}
+
+/**
+ * 删除历史记录条目
+ * @param entryId 条目 ID
+ */
+export async function deleteHistoryEntry(entryId: string): Promise<void> {
+  try {
+    await invoke('delete_history_entry', { entryId })
+  }
+  catch (error) {
+    console.error('Failed to delete history entry:', error)
+    throw error
+  }
+}
+
+/**
+ * 清空所有历史记录
+ */
+export async function clearHistory(): Promise<void> {
+  try {
+    await invoke('clear_history')
+  }
+  catch (error) {
+    console.error('Failed to clear history:', error)
+    throw error
+  }
+}
+
+/**
+ * 获取文件或目录大小
+ * @param path 文件或目录路径
+ * @returns 文件大小（字节）
+ */
+export async function getFileSize(path: string): Promise<number> {
+  try {
+    return await invoke<number>('get_file_size', { path })
+  }
+  catch (error) {
+    console.error('Failed to get file size:', error)
+    return 0 // Return 0 if unable to get file size
+  }
+}
+
+/**
+ * 查找目录中最新的文件
+ * @param dirPath 目录路径
+ * @param afterTimestamp 只查找在此时间戳之后修改的文件（毫秒）
+ * @returns 最新文件的路径，如果没有找到则返回 null
+ */
+export async function findNewestFileInDir(
+  dirPath: string,
+  afterTimestamp?: number,
+  extensions?: string[],
+  nameHint?: string,
+): Promise<string | null> {
+  try {
+    return await invoke<string | null>('find_newest_file_in_dir', {
+      dirPath,
+      afterTimestamp,
+      extensions,
+      nameHint,
+    })
+  }
+  catch (error) {
+    console.error('Failed to find newest file:', error)
+    return null
   }
 }

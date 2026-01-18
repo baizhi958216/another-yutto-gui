@@ -60,6 +60,8 @@ export const useDownloadStore = defineStore('download', () => {
     const settingsStore = useSettingsStore()
     const authStore = useAuthStore()
     let defaultPath = settingsStore.getSetting('defaultDownloadPath')
+    const yuttoCliPath = settingsStore.getSetting('yuttoCliPath')
+    const normalizedYuttoPath = yuttoCliPath && yuttoCliPath.trim() !== '' ? yuttoCliPath : undefined
 
     // Ensure we have a valid path - use current directory if empty
     if (!defaultPath || defaultPath.trim() === '') {
@@ -91,6 +93,7 @@ export const useDownloadStore = defineStore('download', () => {
       videoQuality: defaultVideoQuality,
       audioQuality: defaultAudioQuality,
       downloadPath: defaultPath,
+      yuttoCliPath: normalizedYuttoPath,
       withDanmaku: false,
       withSubtitle: false,
       withCover: false,

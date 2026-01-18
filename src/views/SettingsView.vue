@@ -78,7 +78,7 @@ onMounted(async () => {
           <div class="rounded-lg bg-teal-100 flex h-8 w-8 items-center justify-center">
             <Folder :size="18" class="text-teal-600" />
           </div>
-          <h3 class="text-lg text-gray-800 font-semibold">
+          <h3 class="text-lg text-text-primary font-semibold">
             下载设置
           </h3>
         </div>
@@ -124,7 +124,7 @@ onMounted(async () => {
           <div class="rounded-lg bg-teal-100 flex h-8 w-8 items-center justify-center">
             <Zap :size="18" class="text-teal-600" />
           </div>
-          <h3 class="text-lg text-gray-800 font-semibold">
+          <h3 class="text-lg text-text-primary font-semibold">
             Yutto CLI 设置
           </h3>
         </div>
@@ -155,7 +155,7 @@ onMounted(async () => {
           <div class="rounded-lg bg-teal-100 flex h-8 w-8 items-center justify-center">
             <ShieldCheck :size="18" class="text-teal-600" />
           </div>
-          <h3 class="text-lg text-gray-800 font-semibold">
+          <h3 class="text-lg text-text-primary font-semibold">
             账号设置
           </h3>
         </div>
@@ -203,7 +203,7 @@ onMounted(async () => {
 
       <!-- 外观设置 -->
       <Card>
-        <h3 class="text-lg text-gray-800 font-semibold mb-4">
+        <h3 class="text-lg text-text-primary font-semibold mb-4">
           外观设置
         </h3>
         <div>
@@ -222,7 +222,7 @@ onMounted(async () => {
 
       <!-- 语言设置 -->
       <Card>
-        <h3 class="text-lg text-gray-800 font-semibold mb-4">
+        <h3 class="text-lg text-text-primary font-semibold mb-4">
           语言设置
         </h3>
         <div>
