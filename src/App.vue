@@ -26,9 +26,6 @@ onMounted(async () => {
             </Transition>
           </RouterView>
         </div>
-        <!-- Background decorative blobs -->
-        <div class="rounded-full bg-teal-100/30 h-64 w-64 pointer-events-none right-[-5%] top-[-10%] absolute blur-3xl -z-10" />
-        <div class="rounded-full bg-blue-100/20 h-80 w-80 pointer-events-none bottom-[-10%] left-[-5%] absolute blur-3xl -z-10" />
       </main>
     </div>
     <ToastContainer />
