@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { Search } from 'lucide-vue-next'
 import { computed, onMounted, ref, watch } from 'vue'
+import TextPressure from '@/components/bits/TextPressure.vue'
 import Button from '@/components/common/Button.vue'
 import Input from '@/components/common/Input.vue'
 import Select from '@/components/common/Select.vue'
@@ -173,13 +174,17 @@ onMounted(() => {
   >
     <div class="w-full space-y-4">
       <!-- Welcome Section -->
-      <div v-if="!downloadStore.videoInfo" class="mb-10 text-center">
-        <div class="mb-6 animate-bounce">
-          <span class="text-6xl">✨</span>
-        </div>
-        <h1 class="text-3xl text-gray-800 font-extrabold mb-2">
-          Another Yutto GUI
-        </h1>
+      <div v-if="!downloadStore.videoInfo" class="mb-10 mt-20 text-center">
+        <TextPressure
+          text="Another Yutto GUI"
+          text-color="#14b8a6"
+          stroke-color="#27FF64"
+          :min-font-size="36"
+          :italic="false"
+        />
+        <!-- <h1 class="text-3xl text-gray-800 font-extrabold mb-2">
+
+        </h1> -->
       </div>
       <!-- URL 输入 -->
       <div>
