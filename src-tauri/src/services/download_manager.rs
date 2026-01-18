@@ -196,6 +196,14 @@ impl DownloadManager {
             cmd.arg("--audio-only");
         }
 
+        // Hide console window on Windows when launching yutto.
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            cmd.creation_flags(CREATE_NO_WINDOW);
+        }
+
         // Log the command being executed
         println!("[下载管理器] 开始下载任务 {}", task_id);
         println!("[下载管理器] URL: {}", config.url);
