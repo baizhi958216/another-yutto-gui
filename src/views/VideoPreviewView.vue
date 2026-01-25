@@ -39,15 +39,31 @@ const loadingComments = ref(false)
 const commentsError = ref<string | null>(null)
 const hasCommentFile = ref(false)
 
+// 排序相关状态
+type SortType = 'time' | 'likes'
+const sortType = ref<SortType>('time')
+
 // 分页相关状态
 const currentPage = ref(1)
 const pageSize = 20
 const totalComments = ref(0)
 
+const sortedComments = computed(() => {
+  const sorted = [...comments.value]
+  if (sortType.value === 'time') {
+    // 按时间降序排序（最新的在前）
+    return sorted.sort((a, b) => b.ctime - a.ctime)
+  }
+  else {
+    // 按点赞数降序排序（点赞最多的在前）
+    return sorted.sort((a, b) => b.like - a.like)
+  }
+})
+
 const paginatedComments = computed(() => {
   const start = (currentPage.value - 1) * pageSize
   const end = start + pageSize
-  return comments.value.slice(start, end)
+  return sortedComments.value.slice(start, end)
 })
 
 const totalPages = computed(() => {
@@ -93,6 +109,11 @@ function goToPage(page: number) {
       commentsSection.scrollIntoView({ behavior: 'smooth' })
     }
   }
+}
+
+function changeSortType(type: SortType) {
+  sortType.value = type
+  currentPage.value = 1 // 切换排序时重置到第一页
 }
 
 onMounted(async () => {
@@ -329,6 +350,24 @@ async function handleOpenFolder() {
           <h2 class="text-xl text-text-primary font-bold flex gap-2 items-center">
             评论 {{ totalComments > 0 ? `(${totalComments})` : '' }}
           </h2>
+
+          <!-- 排序选项 -->
+          <div class="flex gap-2">
+            <button
+              class="text-sm px-3 py-1.5 rounded transition-colors"
+              :class="sortType === 'time' ? 'bg-primary text-white' : 'bg-bg-secondary text-text-primary hover:bg-bg-tertiary'"
+              @click="changeSortType('time')"
+            >
+              按时间
+            </button>
+            <button
+              class="text-sm px-3 py-1.5 rounded transition-colors"
+              :class="sortType === 'likes' ? 'bg-primary text-white' : 'bg-bg-secondary text-text-primary hover:bg-bg-tertiary'"
+              @click="changeSortType('likes')"
+            >
+              按点赞
+            </button>
+          </div>
         </div>
 
         <div v-if="commentsError" class="text-sm text-error p-4 rounded bg-bg-secondary">
@@ -348,7 +387,7 @@ async function handleOpenFolder() {
         </div>
 
         <div v-else>
-          <div class="space-y-4">
+          <TransitionGroup name="comment-list" tag="div" class="space-y-4">
             <div
               v-for="comment in paginatedComments"
               :key="comment.rpid"
@@ -400,7 +439,7 @@ async function handleOpenFolder() {
                 </div>
               </div>
             </div>
-          </div>
+          </TransitionGroup>
 
           <!-- 分页控件 -->
           <div v-if="totalPages > 1" class="mt-6 flex gap-2 items-center justify-center">
@@ -501,5 +540,27 @@ async function handleOpenFolder() {
 
 :deep(.plyr__menu__container .plyr__control[role='menuitemradio'][aria-checked='true']::before) {
   background: #14b8a6;
+}
+
+/* 评论列表动画 */
+.comment-list-move,
+.comment-list-enter-active,
+.comment-list-leave-active {
+  transition: all 0.3s ease;
+}
+
+.comment-list-enter-from {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+.comment-list-leave-to {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+
+.comment-list-leave-active {
+  position: absolute;
+  width: 100%;
 }
 </style>
