@@ -33,6 +33,11 @@ function getHistoryTags(entry: any): string[] {
     tags.push(formatAudioQuality(entry.audioQuality))
   }
 
+  // 添加评论标签
+  if (entry.commentFilePath) {
+    tags.push('评论')
+  }
+
   return tags
 }
 
