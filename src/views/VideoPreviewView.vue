@@ -7,6 +7,7 @@ import * as PlyrNamespace from 'plyr'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Button from '@/components/common/Button.vue'
+import Tooltip from '@/components/common/Tooltip.vue'
 import { readCsvFile } from '@/services/tauri'
 import { useDownloadStore } from '@/stores/download'
 import { useHistoryStore } from '@/stores/history'
@@ -240,13 +241,19 @@ async function handleOpenFolder() {
     </div>
 
     <div v-else class="mt-6 space-y-6">
-      <div class="flex">
-        <Button class="b-none hover:bg-#f8f9fa" variant="secondary" @click="router.push('/history')">
+      <div class="flex gap-2">
+        <Button class="b-none h-fit hover:bg-#f8f9fa" variant="secondary" @click="router.push('/history')">
           <ArrowLeft :size="16" @click="router.push('/history')" />
         </Button>
-        <h1 class="text-2xl text-text-primary font-bold">
-          {{ entry.title }}
-        </h1>
+
+        <Tooltip
+          :text="entry.title"
+          class="w-full"
+        >
+          <h1 class="text-2xl text-text-primary font-bold w-90% truncate">
+            {{ entry.title }}
+          </h1>
+        </Tooltip>
       </div>
 
       <div class="video-container">
@@ -464,10 +471,19 @@ async function handleOpenFolder() {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto 1rem;
-  aspect-ratio: 16 / 9;
   background: var(--color-bg-tertiary);
   border-radius: 1rem;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-container video {
+  max-height: 80vh;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
 }
 
 /* Plyr custom theme - Teal colors */

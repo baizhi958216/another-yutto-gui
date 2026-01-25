@@ -26,3 +26,6 @@ export WEBKIT_DISABLE_COMPOSITING_MODE=1
 - [Yutto](https://github.com/yutto-dev/yutto) - 一个可爱且任性的 B 站视频下载器
 - [Tauri](https://tauri.app/) - Tauri 2.0 创建小型、快速、安全、跨平台的应用程序
 - [Vue.js](https://vuejs.org/) - 渐进式 JavaScript 框架
+
+## 免责声明
+本软件提供的所有内容，仅可用作学习交流使用，禁止用于其他用途。请在下载24小时内删除。为尊重作者版权，请前往资源的原始发布网站观看，支持原创，谢谢。
