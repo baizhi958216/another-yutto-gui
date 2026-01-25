@@ -6,6 +6,7 @@ import { ArrowLeft, Download, FolderOpen } from 'lucide-vue-next'
 import * as PlyrNamespace from 'plyr'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import AudioVisualizer from '@/components/common/AudioVisualizer.vue'
 import Button from '@/components/common/Button.vue'
 import { readCsvFile } from '@/services/tauri'
 import { useDownloadStore } from '@/stores/download'
@@ -29,6 +30,8 @@ const entry = computed(() =>
 const videoUrl = computed(() =>
   entry.value ? convertFileSrc(entry.value.filePath) : '',
 )
+
+const isAudioOnly = computed(() => entry.value?.audioOnly ?? false)
 
 const videoElement = ref<HTMLVideoElement | null>(null)
 let player: Plyr | null = null
@@ -117,7 +120,8 @@ function changeSortType(type: SortType) {
 }
 const titleBar = useTitleBarStore()
 onMounted(async () => {
-  if (videoElement.value) {
+  // 只在非音频模式下初始化视频播放器
+  if (videoElement.value && !entry.value?.audioOnly) {
     player = new Plyr(videoElement.value, {
       controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'fullscreen'],
       settings: ['quality', 'speed'],
@@ -275,7 +279,16 @@ async function handleOpenFolder() {
     </div>
 
     <div v-else class="mt-6 space-y-6">
-      <div class="video-container">
+      <!-- 音频可视化播放器 -->
+      <AudioVisualizer
+        v-if="isAudioOnly"
+        :src="videoUrl"
+        :title="entry.title"
+        :cover="entry.thumbnail"
+      />
+
+      <!-- 视频播放器 -->
+      <div v-else class="video-container">
         <video
           ref="videoElement"
           :src="videoUrl"
