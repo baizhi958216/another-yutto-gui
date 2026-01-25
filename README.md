@@ -13,7 +13,7 @@ export GDK_BACKEND=wayland
 export WEBKIT_DISABLE_COMPOSITING_MODE=1
 ```
 
-## TOOD
+## TODO
 -  [ ] 识别不同视频链接
 -  [ ] 下载队列暂停、取消
 -  [ ] 视频预览字幕、弹幕显示
