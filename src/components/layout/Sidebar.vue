@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { Download, History, ListOrdered, Moon, Settings, Sun } from 'lucide-vue-next'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTheme } from '@/composables/useTheme'
 
@@ -19,6 +19,48 @@ const isActive = (name: string) => route.name === name
 
 function navigateTo(name: string) {
   router.push({ name })
+}
+
+const isTransitioning = ref(false)
+
+function handleThemeToggle(event?: MouseEvent) {
+  if (isTransitioning.value) {
+    return
+  }
+
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+    toggleTheme()
+    return
+  }
+
+  const x = typeof event?.clientX === 'number' ? event.clientX : window.innerWidth / 2
+  const y = typeof event?.clientY === 'number' ? event.clientY : window.innerHeight / 2
+  const maxX = Math.max(x, window.innerWidth - x)
+  const maxY = Math.max(y, window.innerHeight - y)
+  const radius = Math.hypot(maxX, maxY)
+  const root = document.documentElement
+  root.style.setProperty('--theme-transition-x', `${x}px`)
+  root.style.setProperty('--theme-transition-y', `${y}px`)
+  root.style.setProperty('--theme-transition-radius', `${radius}px`)
+
+  const startViewTransition = (
+    document as Document & {
+      startViewTransition?: (callback: () => void) => { finished: Promise<void> }
+    }
+  ).startViewTransition
+
+  if (startViewTransition) {
+    isTransitioning.value = true
+    const transition = startViewTransition.call(document, () => {
+      toggleTheme()
+    })
+    transition.finished.finally(() => {
+      isTransitioning.value = false
+    })
+    return
+  }
+
+  toggleTheme()
 }
 </script>
 
@@ -61,7 +103,7 @@ function navigateTo(name: string) {
         class="p-2.5 border border-border-primary rounded-2xl bg-bg-secondary flex flex-col gap-2 w-full transition-all hover:bg-bg-tertiary md:flex-row md:items-center md:justify-between"
         :aria-pressed="isDark"
         aria-label="Toggle theme"
-        @click="toggleTheme"
+        @click="handleThemeToggle"
       >
         <div class="flex gap-3 items-center">
           <div class="text-teal-600 border border-border-primary rounded-xl bg-bg-tertiary flex h-8 w-8 items-center justify-center">

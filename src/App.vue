@@ -96,6 +96,7 @@ onMounted(async () => {
 <style lang="scss">
 :root {
   color-scheme: light;
+  view-transition-name: root;
   --color-bg-primary: #f8f9fa;
   --color-bg-secondary: #ffffff;
   --color-bg-tertiary: #f0f4f8;
@@ -112,6 +113,9 @@ onMounted(async () => {
   --color-accent-500: #14b8a6;
   --color-accent-600: #0d9488;
   --color-accent-500-rgb: 20, 184, 166;
+  --theme-transition-x: 50vw;
+  --theme-transition-y: 50vh;
+  --theme-transition-radius: 0px;
 }
 
 :root[data-theme='dark'] {
@@ -145,6 +149,29 @@ body {
   font-family: 'Quicksand', sans-serif;
   background: var(--color-bg-primary);
   color: var(--color-text-primary);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 0;
+}
+
+::view-transition-new(root) {
+  z-index: 1;
+  clip-path: circle(0px at var(--theme-transition-x) var(--theme-transition-y));
+  animation: theme-reveal 520ms ease-out forwards;
+  will-change: clip-path;
+}
+
+@keyframes theme-reveal {
+  to {
+    clip-path: circle(var(--theme-transition-radius) at var(--theme-transition-x) var(--theme-transition-y));
+  }
 }
 
 /* 自定义滚动条样式 */
