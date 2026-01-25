@@ -1,7 +1,6 @@
 import type { DownloadTask } from '@/types'
 import { ApiService } from '@/services/api'
 import { useDownloadStore } from '@/stores/download'
-import { useHistoryStore } from '@/stores/history'
 import { useQueueStore } from '@/stores/queue'
 import { useToast } from './useToast'
 
@@ -11,7 +10,6 @@ import { useToast } from './useToast'
 export function useDownload() {
   const downloadStore = useDownloadStore()
   const queueStore = useQueueStore()
-  const historyStore = useHistoryStore()
   const { showToast } = useToast()
 
   /**

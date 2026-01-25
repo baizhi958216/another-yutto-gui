@@ -5,22 +5,14 @@ import { useRouter } from 'vue-router'
 import Button from '@/components/common/Button.vue'
 import Card from '@/components/common/Card.vue'
 import Input from '@/components/common/Input.vue'
-import { useDownloadStore } from '@/stores/download'
 import { useHistoryStore } from '@/stores/history'
 import { formatFileSize, formatRelativeTime } from '@/utils/format'
 import { formatAudioQuality, formatVideoQuality } from '@/utils/quality'
 
 const historyStore = useHistoryStore()
-const downloadStore = useDownloadStore()
 const router = useRouter()
 
 const searchQuery = ref('')
-
-const sortOptions = [
-  { value: 'date', label: '按日期' },
-  { value: 'title', label: '按标题' },
-  { value: 'size', label: '按大小' },
-]
 
 // 获取历史记录的标签
 function getHistoryTags(entry: any): string[] {
@@ -53,21 +45,12 @@ function handleSearch() {
   historyStore.setFilter(searchQuery.value)
 }
 
-async function handleClearHistory() {
-  if (confirm('确定要清空所有历史记录吗？')) {
-    await historyStore.clearHistory()
-  }
-}
-
 async function handleDeleteEntry(id: string) {
   await historyStore.removeEntry(id)
 }
 
-async function handleRedownload(url: string) {
-  // Navigate to download page
-  await router.push('/')
-  // Fetch video info with the URL
-  await downloadStore.fetchVideoInfo(url)
+function handlePreview(id: string) {
+  router.push(`/preview/${id}`)
 }
 </script>
 
@@ -110,7 +93,7 @@ async function handleRedownload(url: string) {
         v-for="entry in historyStore.filteredEntries"
         :key="entry.id"
         class="cursor-pointer transition-shadow hover:shadow-md"
-        @click="handleRedownload(entry.url)"
+        @click="handlePreview(entry.id)"
       >
         <div class="flex gap-4">
           <!-- 缩略图 -->

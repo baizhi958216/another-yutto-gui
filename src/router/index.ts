@@ -35,6 +35,15 @@ const router = createRouter({
       },
     },
     {
+      path: '/preview/:id',
+      name: 'preview',
+      component: () => import('@/views/VideoPreviewView.vue'),
+      meta: {
+        title: '视频预览',
+        icon: 'i-carbon-play',
+      },
+    },
+    {
       path: '/settings',
       name: 'settings',
       component: () => import('@/views/SettingsView.vue'),
