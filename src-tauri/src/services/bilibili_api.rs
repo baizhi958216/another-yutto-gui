@@ -1,6 +1,21 @@
 use crate::models::video::{VideoInfo, Owner, QualityOption, AudioQualityOption};
+use crate::models::comment::{Comment, CommentResponse};
 use regex::Regex;
 use serde_json::Value;
+use std::path::Path;
+use std::sync::Mutex;
+use std::time::{SystemTime, UNIX_EPOCH};
+
+// WBI签名相关常量
+const MIXIN_KEY_ENC_TAB: [usize; 64] = [
+    46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49,
+    33, 9, 42, 19, 29, 28, 14, 39, 12, 38, 41, 13, 37, 48, 7, 16, 24, 55, 40,
+    61, 26, 17, 0, 1, 60, 51, 30, 4, 22, 25, 54, 21, 56, 59, 6, 63, 57, 62, 11,
+    36, 20, 34, 44, 52,
+];
+
+// WBI密钥缓存
+static WBI_KEYS_CACHE: Mutex<Option<(String, String, u64)>> = Mutex::new(None);
 
 pub struct BilibiliApi;
 
@@ -164,6 +179,11 @@ impl BilibiliApi {
                 (Self::get_default_quality_options(), Self::get_default_audio_quality_options())
             });
 
+        // 获取评论数量
+        let comment_count = data.get("stat")
+            .and_then(|stat| stat.get("reply"))
+            .and_then(|v| v.as_i64());
+
         eprintln!("成功解析视频信息: {}", title);
 
         Ok(VideoInfo {
@@ -177,6 +197,7 @@ impl BilibiliApi {
             episodes: None,
             available_qualities: Some(available_qualities),
             available_audio_qualities: Some(available_audio_qualities),
+            comment_count,
         })
     }
 
@@ -406,5 +427,622 @@ impl BilibiliApi {
             30216 => "64K".to_string(),
             _ => format!("音频质量 {}", quality),
         }
+    }
+
+    /// 获取视频评论（使用WBI签名API）
+    pub async fn fetch_comments(aid: i64, pagination_str: &str, sessdata: Option<&str>) -> Result<(Vec<Comment>, Option<String>, bool), String> {
+        // 构建参数
+        let mut params = vec![
+            ("oid".to_string(), aid.to_string()),
+            ("type".to_string(), "1".to_string()),
+            ("pagination_str".to_string(), pagination_str.to_string()),
+            ("plat".to_string(), "1".to_string()),
+            ("web_location".to_string(), "1315875".to_string()),
+        ];
+
+        // 对参数进行WBI签名
+        Self::sign_wbi_params(&mut params).await?;
+
+        // 构建URL
+        let query_string: String = params
+            .iter()
+            .map(|(k, v)| format!("{}={}", k, urlencoding::encode(v)))
+            .collect::<Vec<_>>()
+            .join("&");
+
+        let api_url = format!("https://api.bilibili.com/x/v2/reply/wbi/main?{}", query_string);
+
+        eprintln!("调用评论 API: {}", api_url);
+
+        let client = reqwest::Client::builder()
+            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+            .build()
+            .map_err(|e| format!("创建HTTP客户端失败: {}", e))?;
+
+        let mut request = client.get(&api_url);
+
+        if let Some(sessdata) = sessdata {
+            request = request.header("Cookie", format!("SESSDATA={}", sessdata));
+        }
+
+        let response = request
+            .send()
+            .await
+            .map_err(|e| format!("评论API请求失败: {}", e))?;
+
+        if !response.status().is_success() {
+            return Err(format!("评论API请求失败: {}", response.status()));
+        }
+
+        let json_text = response
+            .text()
+            .await
+            .map_err(|e| format!("读取评论响应失败: {}", e))?;
+
+        let json: CommentResponse = serde_json::from_str(&json_text)
+            .map_err(|e| format!("解析评论JSON失败: {}", e))?;
+
+        if json.code != 0 {
+            return Err(format!("评论API返回错误: {} (code: {})", json.message, json.code));
+        }
+
+        let data = json.data.ok_or("评论API响应中未找到data字段")?;
+
+        // 获取下一页的offset
+        let next_offset = data.cursor.pagination_reply
+            .as_ref()
+            .map(|p| p.next_offset.clone());
+
+        let is_end = data.cursor.is_end;
+
+        let replies = data.replies.unwrap_or_default();
+
+        // 转换为简化的Comment结构
+        let comments: Vec<Comment> = replies.iter().map(|reply| {
+            Comment {
+                rpid: reply.rpid,
+                oid: reply.oid,
+                mid: reply.mid,
+                uname: reply.member.uname.clone(),
+                avatar: reply.member.avatar.clone(),
+                sex: reply.member.sex.clone(),
+                content: reply.content.message.clone(),
+                ctime: reply.ctime,
+                like: reply.like,
+                current_level: reply.member.level_info.current_level,
+                location: reply.reply_control.location.clone().unwrap_or_default(),
+                parent: reply.parent,
+                pictures: reply.content.pictures.clone().unwrap_or_default(),
+            }
+        }).collect();
+
+        eprintln!("成功获取 {} 条评论", comments.len());
+
+        Ok((comments, next_offset, is_end))
+    }
+
+    /// 下载所有评论到本地文件
+    pub async fn download_all_comments(
+        aid: i64,
+        bvid: &str,
+        save_path: &str,
+        download_avatars: bool,
+        delay_seconds: u64,
+        sessdata: Option<&str>,
+    ) -> Result<String, String> {
+        use std::fs::{create_dir_all, File, OpenOptions};
+        use std::io::Write;
+        use std::path::Path;
+        use tokio::time::{sleep, Duration};
+
+        // 创建保存目录
+        let video_dir = Path::new(save_path).join(bvid);
+        create_dir_all(&video_dir)
+            .map_err(|e| format!("创建目录失败: {}", e))?;
+
+        let csv_path = video_dir.join(format!("{}.csv", bvid));
+        let avatars_dir = video_dir.join("avatars");
+
+        if download_avatars {
+            create_dir_all(&avatars_dir)
+                .map_err(|e| format!("创建头像目录失败: {}", e))?;
+        }
+
+        // 检查CSV文件是否存在，如果不存在则创建并写入表头
+        let file_exists = csv_path.exists();
+        let mut csv_file = if file_exists {
+            OpenOptions::new()
+                .append(true)
+                .open(&csv_path)
+                .map_err(|e| format!("打开CSV文件失败: {}", e))?
+        } else {
+            let mut file = File::create(&csv_path)
+                .map_err(|e| format!("创建CSV文件失败: {}", e))?;
+            // 写入CSV表头
+            writeln!(file, "bvid,upname,sex,content,avatar,rpid,oid,mid,parent,ctime,like,level,location")
+                .map_err(|e| format!("写入CSV表头失败: {}", e))?;
+            file
+        };
+
+        let mut total_downloaded = 0;
+        let mut pagination_str = r#"{"offset":""}"#.to_string();
+
+        eprintln!("开始下载评论，视频: {}, aid: {}", bvid, aid);
+
+        loop {
+            eprintln!("正在获取评论，pagination_str: {}", pagination_str);
+
+            // 获取评论
+            let (comments, next_offset, is_end) = Self::fetch_comments(aid, &pagination_str, sessdata).await?;
+
+            if comments.is_empty() {
+                eprintln!("没有更多评论，下载完成");
+                break;
+            }
+
+            // 保存评论到CSV
+            for comment in &comments {
+                let content_escaped = comment.content.replace("\"", "\"\"").replace("\n", " ");
+                let location_escaped = comment.location.replace("\"", "\"\"");
+                let uname_escaped = comment.uname.replace("\"", "\"\"");
+
+                let line = format!(
+                    "{},\"{}\",{},\"{}\",{},{},{},{},{},{},{},{},\"{}\"\n",
+                    bvid,
+                    uname_escaped,
+                    comment.sex,
+                    content_escaped,
+                    comment.avatar,
+                    comment.rpid,
+                    comment.oid,
+                    comment.mid,
+                    comment.parent,
+                    comment.ctime,
+                    comment.like,
+                    comment.current_level,
+                    location_escaped
+                );
+
+                csv_file.write_all(line.as_bytes())
+                    .map_err(|e| format!("写入CSV失败: {}", e))?;
+
+                // 下载头像
+                if download_avatars && !comment.avatar.is_empty() {
+                    let avatar_filename = format!("{}_{}.jpg", comment.mid, comment.uname.replace("/", "_"));
+                    let avatar_path = avatars_dir.join(&avatar_filename);
+
+                    // 如果头像文件不存在，则下载
+                    if !avatar_path.exists() {
+                        if let Err(e) = Self::download_avatar(&comment.avatar, &avatar_path).await {
+                            eprintln!("下载头像失败 {}: {}", comment.uname, e);
+                        }
+                    }
+                }
+            }
+
+            csv_file.flush()
+                .map_err(|e| format!("刷新CSV文件失败: {}", e))?;
+
+            total_downloaded += comments.len();
+            eprintln!("已下载 {} 条评论", total_downloaded);
+
+            // 检查是否结束
+            if is_end {
+                eprintln!("已到达最后一页，下载完成");
+                break;
+            }
+
+            // 更新pagination_str
+            if let Some(offset) = next_offset {
+                pagination_str = format!(r#"{{"offset":"{}"}}"#, offset);
+            } else {
+                eprintln!("未找到next_offset，下载完成");
+                break;
+            }
+
+            // 延迟，避免请求过快
+            if delay_seconds > 0 {
+                eprintln!("等待 {} 秒后继续...", delay_seconds);
+                sleep(Duration::from_secs(delay_seconds)).await;
+            }
+        }
+
+        let result_msg = format!("评论下载完成！共下载 {} 条评论，保存至: {}", total_downloaded, csv_path.display());
+        eprintln!("{}", result_msg);
+
+        Ok(result_msg)
+    }
+
+    /// 下载所有评论到指定文件路径
+    pub async fn download_comments_to_file(
+        aid: i64,
+        csv_file_path: &str,
+        delay_seconds: u64,
+        sessdata: Option<&str>,
+    ) -> Result<String, String> {
+        Self::download_comments_to_file_with_progress(
+            aid,
+            csv_file_path,
+            delay_seconds,
+            sessdata,
+            |_, _| {},
+        ).await
+    }
+
+    pub async fn download_comments_to_file_with_progress<F>(
+        aid: i64,
+        csv_file_path: &str,
+        delay_seconds: u64,
+        sessdata: Option<&str>,
+        progress_callback: F,
+    ) -> Result<String, String>
+    where
+        F: Fn(usize, Option<usize>) + Send + 'static,
+    {
+        use std::fs::{create_dir_all, File};
+        use std::io::Write;
+        use std::path::Path;
+        use tokio::time::{sleep, Duration};
+
+        let csv_path = Path::new(csv_file_path);
+
+        // 创建父目录
+        if let Some(parent) = csv_path.parent() {
+            create_dir_all(parent)
+                .map_err(|e| format!("创建目录失败: {}", e))?;
+        }
+
+        // 创建CSV文件并写入表头
+        let mut csv_file = File::create(&csv_path)
+            .map_err(|e| format!("创建CSV文件失败: {}", e))?;
+        writeln!(csv_file, "rpid,oid,mid,uname,sex,content,avatar,ctime,like,level,location,parent")
+            .map_err(|e| format!("写入CSV表头失败: {}", e))?;
+
+        let mut total_downloaded = 0;
+        let mut pagination_str = r#"{"offset":""}"#.to_string();
+        let mut estimated_total: Option<usize> = None;
+
+        eprintln!("开始下载评论，aid: {}", aid);
+
+        loop {
+            eprintln!("正在获取评论，pagination_str: {}", pagination_str);
+
+            // 获取评论
+            let result = Self::fetch_comments(aid, &pagination_str, sessdata).await;
+
+            let (comments, next_offset, is_end) = match result {
+                Ok(data) => data,
+                Err(e) => {
+                    // If we have downloaded some comments, treat as incomplete
+                    if total_downloaded > 0 {
+                        eprintln!("评论下载中断（已下载 {} 条）: {}", total_downloaded, e);
+                        return Err(format!("评论API请求失败: {}", e));
+                    } else {
+                        return Err(e);
+                    }
+                }
+            };
+
+            if comments.is_empty() {
+                eprintln!("没有更多评论，下载完成");
+                break;
+            }
+
+            // 保存评论到CSV
+            for comment in &comments {
+                let content_escaped = comment.content.replace("\"", "\"\"").replace("\n", " ");
+                let location_escaped = comment.location.replace("\"", "\"\"");
+                let uname_escaped = comment.uname.replace("\"", "\"\"");
+
+                let line = format!(
+                    "{},{},{},\"{}\",{},\"{}\",{},{},{},{},\"{}\",{}\n",
+                    comment.rpid,
+                    comment.oid,
+                    comment.mid,
+                    uname_escaped,
+                    comment.sex,
+                    content_escaped,
+                    comment.avatar,
+                    comment.ctime,
+                    comment.like,
+                    comment.current_level,
+                    location_escaped,
+                    comment.parent
+                );
+
+                csv_file.write_all(line.as_bytes())
+                    .map_err(|e| format!("写入CSV失败: {}", e))?;
+            }
+
+            csv_file.flush()
+                .map_err(|e| format!("刷新CSV文件失败: {}", e))?;
+
+            total_downloaded += comments.len();
+            eprintln!("已下载 {} 条评论", total_downloaded);
+
+            // Call progress callback
+            progress_callback(total_downloaded, estimated_total);
+
+            // 检查是否结束
+            if is_end {
+                eprintln!("已到达最后一页，下载完成");
+                break;
+            }
+
+            // 更新pagination_str
+            if let Some(offset) = next_offset {
+                pagination_str = format!(r#"{{"offset":"{}"}}"#, offset);
+            } else {
+                eprintln!("未找到next_offset，下载完成");
+                break;
+            }
+
+            // 延迟，避免请求过快
+            if delay_seconds > 0 {
+                eprintln!("等待 {} 秒后继续...", delay_seconds);
+                sleep(Duration::from_secs(delay_seconds)).await;
+            }
+        }
+
+        let result_msg = format!("评论下载完成！共下载 {} 条评论，保存至: {}", total_downloaded, csv_path.display());
+        eprintln!("{}", result_msg);
+
+        Ok(result_msg)
+    }
+
+    pub async fn download_comments_to_file_old(
+        aid: i64,
+        csv_file_path: &str,
+        delay_seconds: u64,
+        sessdata: Option<&str>,
+    ) -> Result<String, String> {
+        use std::fs::{create_dir_all, File};
+        use std::io::Write;
+        use std::path::Path;
+        use tokio::time::{sleep, Duration};
+
+        let csv_path = Path::new(csv_file_path);
+
+        // 创建父目录
+        if let Some(parent) = csv_path.parent() {
+            create_dir_all(parent)
+                .map_err(|e| format!("创建目录失败: {}", e))?;
+        }
+
+        // 创建CSV文件并写入表头
+        let mut csv_file = File::create(&csv_path)
+            .map_err(|e| format!("创建CSV文件失败: {}", e))?;
+        writeln!(csv_file, "rpid,oid,mid,uname,sex,content,avatar,ctime,like,level,location,parent")
+            .map_err(|e| format!("写入CSV表头失败: {}", e))?;
+
+        let mut total_downloaded = 0;
+        let mut pagination_str = r#"{"offset":""}"#.to_string();
+
+        eprintln!("开始下载评论，aid: {}", aid);
+
+        loop {
+            eprintln!("正在获取评论，pagination_str: {}", pagination_str);
+
+            // 获取评论
+            let (comments, next_offset, is_end) = Self::fetch_comments(aid, &pagination_str, sessdata).await?;
+
+            if comments.is_empty() {
+                eprintln!("没有更多评论，下载完成");
+                break;
+            }
+
+            // 保存评论到CSV
+            for comment in &comments {
+                let content_escaped = comment.content.replace("\"", "\"\"").replace("\n", " ");
+                let location_escaped = comment.location.replace("\"", "\"\"");
+                let uname_escaped = comment.uname.replace("\"", "\"\"");
+
+                let line = format!(
+                    "{},{},{},\"{}\",{},\"{}\",{},{},{},{},\"{}\",{}\n",
+                    comment.rpid,
+                    comment.oid,
+                    comment.mid,
+                    uname_escaped,
+                    comment.sex,
+                    content_escaped,
+                    comment.avatar,
+                    comment.ctime,
+                    comment.like,
+                    comment.current_level,
+                    location_escaped,
+                    comment.parent
+                );
+
+                csv_file.write_all(line.as_bytes())
+                    .map_err(|e| format!("写入CSV失败: {}", e))?;
+            }
+
+            csv_file.flush()
+                .map_err(|e| format!("刷新CSV文件失败: {}", e))?;
+
+            total_downloaded += comments.len();
+            eprintln!("已下载 {} 条评论", total_downloaded);
+
+            // 检查是否结束
+            if is_end {
+                eprintln!("已到达最后一页，下载完成");
+                break;
+            }
+
+            // 更新pagination_str
+            if let Some(offset) = next_offset {
+                pagination_str = format!(r#"{{"offset":"{}"}}"#, offset);
+            } else {
+                eprintln!("未找到next_offset，下载完成");
+                break;
+            }
+
+            // 延迟，避免请求过快
+            if delay_seconds > 0 {
+                eprintln!("等待 {} 秒后继续...", delay_seconds);
+                sleep(Duration::from_secs(delay_seconds)).await;
+            }
+        }
+
+        let result_msg = format!("评论下载完成！共下载 {} 条评论，保存至: {}", total_downloaded, csv_path.display());
+        eprintln!("{}", result_msg);
+
+        Ok(result_msg)
+    }
+
+    /// 下载头像
+    async fn download_avatar(avatar_url: &str, save_path: &Path) -> Result<(), String> {
+        let client = reqwest::Client::builder()
+            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+            .build()
+            .map_err(|e| format!("创建HTTP客户端失败: {}", e))?;
+
+        let response = client
+            .get(avatar_url)
+            .send()
+            .await
+            .map_err(|e| format!("下载头像请求失败: {}", e))?;
+
+        if !response.status().is_success() {
+            return Err(format!("下载头像失败: {}", response.status()));
+        }
+
+        let bytes = response
+            .bytes()
+            .await
+            .map_err(|e| format!("读取头像数据失败: {}", e))?;
+
+        std::fs::write(save_path, bytes)
+            .map_err(|e| format!("保存头像文件失败: {}", e))?;
+
+        Ok(())
+    }
+
+    /// 获取WBI密钥（带缓存）
+    async fn get_wbi_keys() -> Result<(String, String), String> {
+        // 检查缓存
+        {
+            let cache = WBI_KEYS_CACHE.lock().unwrap();
+            if let Some((img_key, sub_key, timestamp)) = cache.as_ref() {
+                let now = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs();
+                // 缓存10分钟
+                if now - timestamp < 600 {
+                    return Ok((img_key.clone(), sub_key.clone()));
+                }
+            }
+        }
+
+        // 获取新的密钥
+        let client = reqwest::Client::builder()
+            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+            .build()
+            .map_err(|e| format!("创建HTTP客户端失败: {}", e))?;
+
+        let response = client
+            .get("https://api.bilibili.com/x/web-interface/nav")
+            .send()
+            .await
+            .map_err(|e| format!("获取WBI密钥失败: {}", e))?;
+
+        let json: Value = response
+            .json()
+            .await
+            .map_err(|e| format!("解析WBI密钥响应失败: {}", e))?;
+
+        let wbi_img = json
+            .get("data")
+            .and_then(|d| d.get("wbi_img"))
+            .ok_or("未找到wbi_img字段")?;
+
+        let img_url = wbi_img
+            .get("img_url")
+            .and_then(|v| v.as_str())
+            .ok_or("未找到img_url")?;
+
+        let sub_url = wbi_img
+            .get("sub_url")
+            .and_then(|v| v.as_str())
+            .ok_or("未找到sub_url")?;
+
+        // 从URL中提取文件名（去除扩展名）
+        let img_key = img_url
+            .split('/')
+            .last()
+            .and_then(|s| s.split('.').next())
+            .ok_or("无法提取img_key")?
+            .to_string();
+
+        let sub_key = sub_url
+            .split('/')
+            .last()
+            .and_then(|s| s.split('.').next())
+            .ok_or("无法提取sub_key")?
+            .to_string();
+
+        // 更新缓存
+        {
+            let mut cache = WBI_KEYS_CACHE.lock().unwrap();
+            let now = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs();
+            *cache = Some((img_key.clone(), sub_key.clone(), now));
+        }
+
+        Ok((img_key, sub_key))
+    }
+
+    /// 生成混合密钥
+    fn get_mixin_key(img_key: &str, sub_key: &str) -> String {
+        let combined = format!("{}{}", img_key, sub_key);
+        let mut mixin_key = String::new();
+
+        for &index in MIXIN_KEY_ENC_TAB.iter() {
+            if index < combined.len() {
+                if let Some(ch) = combined.chars().nth(index) {
+                    mixin_key.push(ch);
+                }
+            }
+        }
+
+        // 取前32个字符
+        mixin_key.chars().take(32).collect()
+    }
+
+    /// 对参数进行WBI签名
+    async fn sign_wbi_params(params: &mut Vec<(String, String)>) -> Result<(), String> {
+        // 获取WBI密钥
+        let (img_key, sub_key) = Self::get_wbi_keys().await?;
+        let mixin_key = Self::get_mixin_key(&img_key, &sub_key);
+
+        // 添加时��戳
+        let wts = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        params.push(("wts".to_string(), wts.to_string()));
+
+        // 按key排序
+        params.sort_by(|a, b| a.0.cmp(&b.0));
+
+        // 构建查询字符串
+        let query_string: String = params
+            .iter()
+            .map(|(k, v)| format!("{}={}", k, urlencoding::encode(v)))
+            .collect::<Vec<_>>()
+            .join("&");
+
+        // 计算MD5
+        let to_hash = format!("{}{}", query_string, mixin_key);
+        let digest = md5::compute(to_hash.as_bytes());
+        let w_rid = format!("{:x}", digest);
+
+        // 添加w_rid参数
+        params.push(("w_rid".to_string(), w_rid));
+
+        Ok(())
     }
 }

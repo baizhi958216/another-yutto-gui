@@ -97,6 +97,7 @@ export const useDownloadStore = defineStore('download', () => {
       withDanmaku: false,
       withSubtitle: false,
       withCover: false,
+      withComments: false,
       batch: false,
       videoOnly: false,
       audioOnly: false,

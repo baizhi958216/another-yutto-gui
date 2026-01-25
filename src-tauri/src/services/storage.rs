@@ -27,7 +27,8 @@ impl Storage {
                 audio_quality INTEGER NOT NULL,
                 video_only INTEGER DEFAULT 0,
                 audio_only INTEGER DEFAULT 0,
-                size INTEGER DEFAULT 0
+                size INTEGER DEFAULT 0,
+                comment_file_path TEXT
             )",
             [],
         )?;
@@ -53,12 +54,23 @@ impl Storage {
                     audio_quality INTEGER NOT NULL,
                     video_only INTEGER DEFAULT 0,
                     audio_only INTEGER DEFAULT 0,
-                    size INTEGER DEFAULT 0
+                    size INTEGER DEFAULT 0,
+                    comment_file_path TEXT
                 )",
                 [],
             )?;
             // Note: Old data will be lost, but this is acceptable for a development version
             conn.execute("DROP TABLE history_old", [])?;
+        }
+
+        // Add comment_file_path column if it doesn't exist
+        let has_comment_field = conn
+            .prepare("SELECT comment_file_path FROM history LIMIT 1")
+            .is_ok();
+
+        if !has_comment_field {
+            eprintln!("[Storage] Adding comment_file_path column to history table");
+            conn.execute("ALTER TABLE history ADD COLUMN comment_file_path TEXT", [])?;
         }
 
         // Create auth table
@@ -169,8 +181,8 @@ impl Storage {
     pub fn add_history_entry(&self, entry: &crate::models::history::HistoryEntry) -> Result<(), Box<dyn Error>> {
         let conn = Connection::open(&self.db_path)?;
         conn.execute(
-            "INSERT INTO history (id, title, url, thumbnail, download_date, file_path, video_quality, audio_quality, video_only, audio_only, size)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            "INSERT INTO history (id, title, url, thumbnail, download_date, file_path, video_quality, audio_quality, video_only, audio_only, size, comment_file_path)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
             rusqlite::params![
                 &entry.id,
                 &entry.title,
@@ -183,6 +195,7 @@ impl Storage {
                 entry.video_only.unwrap_or(false) as i32,
                 entry.audio_only.unwrap_or(false) as i32,
                 &entry.size,
+                &entry.comment_file_path,
             ],
         )?;
         Ok(())
@@ -194,7 +207,7 @@ impl Storage {
         let offset = page * page_size;
 
         let mut stmt = conn.prepare(
-            "SELECT id, title, url, thumbnail, download_date, file_path, video_quality, audio_quality, video_only, audio_only, size
+            "SELECT id, title, url, thumbnail, download_date, file_path, video_quality, audio_quality, video_only, audio_only, size, comment_file_path
              FROM history
              ORDER BY download_date DESC
              LIMIT ?1 OFFSET ?2"
@@ -219,6 +232,7 @@ impl Storage {
                     Some(val != 0)
                 },
                 size: row.get(10)?,
+                comment_file_path: row.get(11)?,
             })
         })?
         .collect::<Result<Vec<_>, _>>()?;
@@ -231,7 +245,7 @@ impl Storage {
         let conn = Connection::open(&self.db_path)?;
 
         let mut stmt = conn.prepare(
-            "SELECT id, title, url, thumbnail, download_date, file_path, video_quality, audio_quality, video_only, audio_only, size
+            "SELECT id, title, url, thumbnail, download_date, file_path, video_quality, audio_quality, video_only, audio_only, size, comment_file_path
              FROM history
              ORDER BY download_date DESC"
         )?;
@@ -255,6 +269,7 @@ impl Storage {
                     Some(val != 0)
                 },
                 size: row.get(10)?,
+                comment_file_path: row.get(11)?,
             })
         })?
         .collect::<Result<Vec<_>, _>>()?;

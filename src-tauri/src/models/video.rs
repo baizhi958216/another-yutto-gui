@@ -13,6 +13,7 @@ pub struct VideoInfo {
     pub episodes: Option<Vec<Episode>>,
     pub available_qualities: Option<Vec<QualityOption>>,
     pub available_audio_qualities: Option<Vec<AudioQualityOption>>,
+    pub comment_count: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

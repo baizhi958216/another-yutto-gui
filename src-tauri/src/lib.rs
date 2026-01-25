@@ -16,6 +16,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_shell::init())
         .setup(|app| {
             // Initialize storage in setup hook where we have access to app handle
             let app_data_dir = app.path().app_data_dir()
@@ -34,6 +35,9 @@ pub fn run() {
             // Video commands
             video::fetch_video_info,
             video::validate_url,
+            video::fetch_video_comments,
+            video::download_video_comments,
+            video::download_comments_to_file,
             // Download commands
             download::start_download,
             download::pause_download,
@@ -60,6 +64,7 @@ pub fn run() {
             system::save_settings,
             system::get_file_size,
             system::find_newest_file_in_dir,
+            system::read_csv_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

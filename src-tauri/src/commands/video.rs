@@ -1,6 +1,7 @@
 use crate::services::yutto_cli::YuttoCli;
 use crate::services::bilibili_api::BilibiliApi;
 use crate::models::video::VideoInfo;
+use crate::models::comment::Comment;
 
 #[tauri::command]
 pub async fn fetch_video_info(url: String, sessdata: Option<String>, is_vip: bool) -> Result<VideoInfo, String> {
@@ -29,4 +30,40 @@ pub fn validate_url(url: String) -> Result<bool, String> {
     ];
 
     Ok(valid_patterns.iter().any(|pattern| url.contains(pattern)))
+}
+
+#[tauri::command]
+pub async fn fetch_video_comments(aid: i64, pagination_str: String, sessdata: Option<String>) -> Result<(Vec<Comment>, Option<String>, bool), String> {
+    eprintln!("[fetch_video_comments] Received parameters - aid: {}, pagination_str: {}, sessdata present: {}",
+        aid, pagination_str, sessdata.is_some());
+
+    BilibiliApi::fetch_comments(aid, &pagination_str, sessdata.as_deref()).await
+}
+
+#[tauri::command]
+pub async fn download_video_comments(
+    aid: i64,
+    bvid: String,
+    save_path: String,
+    download_avatars: bool,
+    delay_seconds: u64,
+    sessdata: Option<String>,
+) -> Result<String, String> {
+    eprintln!("[download_video_comments] Starting download - aid: {}, bvid: {}, save_path: {}, download_avatars: {}, delay: {}s",
+        aid, bvid, save_path, download_avatars, delay_seconds);
+
+    BilibiliApi::download_all_comments(aid, &bvid, &save_path, download_avatars, delay_seconds, sessdata.as_deref()).await
+}
+
+#[tauri::command]
+pub async fn download_comments_to_file(
+    aid: i64,
+    csv_file_path: String,
+    delay_seconds: u64,
+    sessdata: Option<String>,
+) -> Result<String, String> {
+    eprintln!("[download_comments_to_file] Starting download - aid: {}, csv_file_path: {}, delay: {}s",
+        aid, csv_file_path, delay_seconds);
+
+    BilibiliApi::download_comments_to_file(aid, &csv_file_path, delay_seconds, sessdata.as_deref()).await
 }

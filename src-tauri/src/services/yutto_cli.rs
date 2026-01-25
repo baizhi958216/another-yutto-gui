@@ -142,6 +142,7 @@ impl YuttoCli {
             episodes: None,
             available_qualities: None,
             available_audio_qualities: None,
+            comment_count: None, // XML 中没有评论数量信息
         })
     }
 

@@ -76,6 +76,7 @@ export const useQueueStore = defineStore('queue', () => {
           // Get actual file size and path
           let fileSize = newTask.totalSize || 0 // Use parsed size from yutto as default
           let actualFilePath = newTask.config.downloadPath
+          const commentFilePath: string | undefined = newTask.commentFilePath
 
           const normalizedDownloadPath = newTask.config.downloadPath.replace(/[\\/]+$/, '')
           const normalizedSavedPath = newTask.savedFilePath?.replace(/[\\/]+$/, '')
@@ -150,6 +151,7 @@ export const useQueueStore = defineStore('queue', () => {
             videoOnly: newTask.config.videoOnly,
             audioOnly: newTask.config.audioOnly,
             size: fileSize,
+            commentFilePath,
           })
           console.log(`[Queue Store] 已保存到历史记录: ${newTask.videoInfo.title}`)
         }

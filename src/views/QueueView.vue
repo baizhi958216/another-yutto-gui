@@ -14,7 +14,12 @@ const { pauseDownload, resumeDownload, cancelDownload } = useDownload()
 const allTasks = computed(() => queueStore.tasks)
 const hasActiveTasks = computed(() => allTasks.value.length > 0)
 
-function getStatusText(status: string) {
+function getStatusText(status: string, task: any) {
+  // If downloading comments, show special status
+  if (task.isDownloadingComments) {
+    return '下载评论中'
+  }
+
   const statusMap: Record<string, string> = {
     pending: '等待中',
     downloading: '下载中',
@@ -64,6 +69,9 @@ function getDownloadTags(task: any): string[] {
   }
   if (task.config.withCover) {
     tags.push('封面')
+  }
+  if (task.config.withComments) {
+    tags.push('评论')
   }
 
   return tags
@@ -136,14 +144,25 @@ function getDownloadTags(task: any): string[] {
 
             <div class="text-sm text-text-secondary mb-2 flex gap-4 items-center">
               <span :class="getStatusColor(task.status)">
-                {{ getStatusText(task.status) }}
+                {{ getStatusText(task.status, task) }}
               </span>
-              <span v-if="task.status === 'downloading'">
+              <span v-if="task.isDownloadingComments && task.commentDownloadProgress">
+                {{ task.commentDownloadProgress }}
+              </span>
+              <span v-else-if="task.status === 'downloading'">
                 {{ task.speed }}
               </span>
-              <span v-if="task.status === 'downloading'">
+              <span v-if="task.status === 'downloading' && !task.isDownloadingComments">
                 剩余 {{ task.eta }}
               </span>
+            </div>
+            <!-- 警告信息 -->
+            <div v-if="task.warning" class="text-xs text-warning mb-2">
+              {{ task.warning }}
+            </div>
+            <!-- 错误信息 -->
+            <div v-if="task.error" class="text-xs text-error mb-2">
+              {{ task.error }}
             </div>
             <ProgressBar
               v-if="task.status !== 'completed'"

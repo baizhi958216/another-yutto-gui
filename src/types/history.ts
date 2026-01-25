@@ -10,4 +10,5 @@ export interface HistoryEntry {
   videoOnly?: boolean
   audioOnly?: boolean
   size: number
+  commentFilePath?: string
 }

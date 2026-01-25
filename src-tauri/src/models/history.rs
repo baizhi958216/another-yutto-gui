@@ -15,4 +15,5 @@ pub struct HistoryEntry {
     pub video_only: Option<bool>,
     pub audio_only: Option<bool>,
     pub size: i64,
+    pub comment_file_path: Option<String>,
 }

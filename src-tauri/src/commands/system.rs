@@ -229,3 +229,22 @@ pub async fn find_newest_file_in_dir(
 
     Ok(newest_file.map(|(path, _)| path))
 }
+
+#[tauri::command]
+pub async fn read_csv_file(file_path: String) -> Result<String, String> {
+    use std::fs;
+    use std::path::Path;
+
+    let path = Path::new(&file_path);
+
+    if !path.exists() {
+        return Err(format!("文件不存在: {}", file_path));
+    }
+
+    if !path.is_file() {
+        return Err(format!("路径不是文件: {}", file_path));
+    }
+
+    fs::read_to_string(path)
+        .map_err(|e| format!("读取文件失败: {}", e))
+}

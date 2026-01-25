@@ -36,8 +36,12 @@ export function useTaskPolling(intervalMs: number = 1000) {
             speed: backendTask.speed,
             eta: backendTask.eta,
             error: backendTask.error,
+            warning: backendTask.warning,
             totalSize: backendTask.totalSize,
             savedFilePath: backendTask.savedFilePath,
+            commentFilePath: backendTask.commentFilePath,
+            commentDownloadProgress: backendTask.commentDownloadProgress,
+            isDownloadingComments: backendTask.isDownloadingComments,
             startTime: backendTask.startTime,
           })
         }

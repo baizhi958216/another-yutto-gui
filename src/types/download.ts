@@ -7,6 +7,7 @@ export interface DownloadConfig {
   withDanmaku: boolean
   withSubtitle: boolean
   withCover: boolean
+  withComments: boolean
   batch: boolean
   videoOnly?: boolean
   audioOnly?: boolean
@@ -22,12 +23,16 @@ export interface DownloadTask {
   speed: string
   eta: string
   error?: string
+  warning?: string
   videoInfo?: {
     title: string
     thumbnail: string
   }
   totalSize: number
   savedFilePath?: string
+  commentFilePath?: string
+  commentDownloadProgress?: string
+  isDownloadingComments: boolean
   startTime: number
 }
 

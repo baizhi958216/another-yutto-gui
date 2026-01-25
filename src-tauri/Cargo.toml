@@ -34,5 +34,6 @@ hex = "0.4"
 hostname = "0.3"
 whoami = "1.4"
 url = "2"
-
-
+md5 = "0.7"
+urlencoding = "2"
+tauri-plugin-shell = "2.0.0"

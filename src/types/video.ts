@@ -13,6 +13,7 @@ export interface VideoInfo {
   episodes?: Episode[]
   available_qualities?: QualityOption[]
   available_audio_qualities?: AudioQualityOption[]
+  comment_count?: number
 }
 
 export interface QualityOption {

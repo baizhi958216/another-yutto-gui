@@ -48,6 +48,9 @@ export function useDownload() {
         },
         totalSize: 0,
         savedFilePath: undefined,
+        commentFilePath: undefined,
+        commentDownloadProgress: undefined,
+        isDownloadingComments: false,
         startTime: Date.now(),
       }
 

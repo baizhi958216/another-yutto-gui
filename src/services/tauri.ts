@@ -1,7 +1,8 @@
-import type { DownloadConfig, HistoryEntry, VideoInfo } from '@/types'
+import type { Comment, DownloadConfig, HistoryEntry, VideoInfo } from '@/types'
 
 import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
+import { open as openUrl } from '@tauri-apps/plugin-shell'
 
 /**
  * 获取视频信息
@@ -245,5 +246,119 @@ export async function findNewestFileInDir(
   catch (error) {
     console.error('Failed to find newest file:', error)
     return null
+  }
+}
+
+/**
+ * 获取视频评论
+ * @param aid 视频 AID
+ * @param page 页码
+ * @param pageSize 每页大小
+ * @param sessdata 用户的 SESSDATA cookie
+ * @returns 评论列表
+ */
+export async function getVideoComments(aid: number, page: number = 1, pageSize: number = 20, sessdata?: string): Promise<Comment[]> {
+  try {
+    return await invoke<Comment[]>('fetch_video_comments', {
+      aid,
+      page,
+      pageSize,
+      sessdata: sessdata || null,
+    })
+  }
+  catch (error) {
+    console.error('Failed to get video comments:', error)
+    throw error
+  }
+}
+
+/**
+ * 下载视频所有评论到本地
+ * @param aid 视频 AID
+ * @param bvid 视频 BVID
+ * @param savePath 保存路径
+ * @param downloadAvatars 是否下载头像
+ * @param delaySeconds 请求延迟秒数
+ * @param sessdata 用户的 SESSDATA cookie
+ * @returns 下载结果消息
+ */
+export async function downloadVideoComments(
+  aid: number,
+  bvid: string,
+  savePath: string,
+  downloadAvatars: boolean = true,
+  delaySeconds: number = 3,
+  sessdata?: string,
+): Promise<string> {
+  try {
+    return await invoke<string>('download_video_comments', {
+      aid,
+      bvid,
+      savePath,
+      downloadAvatars,
+      delaySeconds,
+      sessdata: sessdata || null,
+    })
+  }
+  catch (error) {
+    console.error('Failed to download video comments:', error)
+    throw error
+  }
+}
+
+/**
+ * 读取CSV文件内容
+ * @param filePath CSV文件路径
+ * @returns CSV文件内容
+ */
+export async function readCsvFile(filePath: string): Promise<string> {
+  try {
+    return await invoke<string>('read_csv_file', { filePath })
+  }
+  catch (error) {
+    console.error('Failed to read CSV file:', error)
+    throw error
+  }
+}
+
+/**
+ * 下载评论到指定文件
+ * @param aid 视频 AID
+ * @param csvFilePath CSV文件路径
+ * @param delaySeconds 请求延迟秒数
+ * @param sessdata 用户的 SESSDATA cookie
+ * @returns 下载结果消息
+ */
+export async function downloadCommentsToFile(
+  aid: number,
+  csvFilePath: string,
+  delaySeconds: number = 3,
+  sessdata?: string,
+): Promise<string> {
+  try {
+    return await invoke<string>('download_comments_to_file', {
+      aid,
+      csvFilePath,
+      delaySeconds,
+      sessdata: sessdata || null,
+    })
+  }
+  catch (error) {
+    console.error('Failed to download comments to file:', error)
+    throw error
+  }
+}
+
+/**
+ * 在系统默认浏览器中打开 URL
+ * @param url 要打开的 URL
+ */
+export async function openInBrowser(url: string): Promise<void> {
+  try {
+    await openUrl(url)
+  }
+  catch (error) {
+    console.error('Failed to open URL in browser:', error)
+    throw error
   }
 }

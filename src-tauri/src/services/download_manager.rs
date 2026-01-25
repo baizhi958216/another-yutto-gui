@@ -129,9 +129,13 @@ impl DownloadManager {
             speed: "0 KB/s".to_string(),
             eta: "--:--".to_string(),
             error: None,
+            warning: None,
             video_info: video_info.clone(),
             total_size: 0, // Will be updated from yutto output
             saved_file_path: None, // Will be parsed from yutto output
+            comment_file_path: None, // Will be set after comment download
+            comment_download_progress: None, // Will be updated during comment download
+            is_downloading_comments: false, // Will be set to true when downloading comments
             start_time: Self::now_millis(),
         };
 
@@ -244,7 +248,26 @@ impl DownloadManager {
         let _ = stderr_handle.await;
 
         if status.success() {
-            println!("[下载管理器] 下载完成: {}", task_id);
+            println!("[下载管理器] 视频下载完成: {}", task_id);
+
+            // Download comments if requested
+            if config.with_comments {
+                println!("[下载管理器] 开始下载评论...");
+                match Self::download_comments_for_task(&task_id, &config, &downloads).await {
+                    Ok(_) => {
+                        println!("[下载管理器] 评论下载完成");
+                    }
+                    Err(e) => {
+                        println!("[下载管理器] 评论下载失败: {}", e);
+                        // Set warning but don't fail the entire task
+                        let mut downloads = downloads.lock().await;
+                        if let Some(task) = downloads.get_mut(&task_id) {
+                            task.warning = Some(format!("评论下载失败: {}", e));
+                        }
+                    }
+                }
+            }
+
             // Mark as completed
             let mut downloads = downloads.lock().await;
             if let Some(task) = downloads.get_mut(&task_id) {
@@ -255,6 +278,115 @@ impl DownloadManager {
         } else {
             println!("[下载管理器] 下载失败，退出码: {:?}", status.code());
             Err(format!("下载失败，退出码: {:?}", status.code()))
+        }
+    }
+
+    async fn download_comments_for_task(
+        task_id: &str,
+        config: &DownloadConfig,
+        downloads: &Arc<Mutex<HashMap<String, DownloadTask>>>,
+    ) -> Result<String, String> {
+        use crate::services::bilibili_api::BilibiliApi;
+
+        // Set is_downloading_comments flag
+        {
+            let mut downloads_guard = downloads.lock().await;
+            if let Some(task) = downloads_guard.get_mut(task_id) {
+                task.is_downloading_comments = true;
+            }
+        }
+
+        // Get video info to extract aid and bvid
+        let video_info = BilibiliApi::fetch_video_info_from_html(
+            &config.url,
+            config.sessdata.as_deref(),
+            false,
+        ).await?;
+
+        // Determine comment file path
+        let saved_file_path = {
+            let downloads_guard = downloads.lock().await;
+            downloads_guard.get(task_id)
+                .and_then(|task| task.saved_file_path.clone())
+        };
+
+        let comment_file_path = if let Some(video_path) = saved_file_path {
+            // Use the same directory as the video file
+            let path = std::path::Path::new(&video_path);
+            let parent = path.parent().ok_or("无法获取视频文件目录")?;
+            let file_stem = path.file_stem().ok_or("无法获取视频文件名")?;
+            let comment_file = parent.join(format!("{}_comments.csv", file_stem.to_string_lossy()));
+            comment_file.to_string_lossy().to_string()
+        } else {
+            // Fallback: use download path with bvid
+            let download_path = std::path::Path::new(&config.download_path);
+            let comment_file = download_path.join(format!("{}_comments.csv", video_info.bvid));
+            comment_file.to_string_lossy().to_string()
+        };
+
+        println!("[下载管理器] 评论文件路径: {}", comment_file_path);
+
+        // Download comments with progress callback
+        let downloads_clone = downloads.clone();
+        let task_id_clone = task_id.to_string();
+        let progress_callback = move |current: usize, total: Option<usize>| {
+            let downloads = downloads_clone.clone();
+            let task_id = task_id_clone.clone();
+            tokio::spawn(async move {
+                let mut downloads_guard = downloads.lock().await;
+                if let Some(task) = downloads_guard.get_mut(&task_id) {
+                    if let Some(total) = total {
+                        task.comment_download_progress = Some(format!("{}/{}", current, total));
+                    } else {
+                        task.comment_download_progress = Some(format!("{}", current));
+                    }
+                }
+            });
+        };
+
+        let result = BilibiliApi::download_comments_to_file_with_progress(
+            video_info.aid,
+            &comment_file_path,
+            3, // 3 second delay between requests
+            config.sessdata.as_deref(),
+            progress_callback,
+        ).await;
+
+        // Clear is_downloading_comments flag
+        {
+            let mut downloads_guard = downloads.lock().await;
+            if let Some(task) = downloads_guard.get_mut(task_id) {
+                task.is_downloading_comments = false;
+                task.comment_download_progress = None;
+            }
+        }
+
+        match result {
+            Ok(_) => {
+                // Update task with comment file path
+                let mut downloads_guard = downloads.lock().await;
+                if let Some(task) = downloads_guard.get_mut(task_id) {
+                    task.comment_file_path = Some(comment_file_path.clone());
+                }
+                Ok(comment_file_path)
+            }
+            Err(e) => {
+                // Check if it's a network error that should be treated as incomplete
+                if e.contains("error sending request for url") || e.contains("评论API请求失败") {
+                    println!("[下载管理器] 评论下载网络错误，标记为不完整: {}", e);
+                    let mut downloads_guard = downloads.lock().await;
+                    if let Some(task) = downloads_guard.get_mut(task_id) {
+                        task.warning = Some("评论下载不完整（网络错误）".to_string());
+                        // Still set the comment file path if some comments were downloaded
+                        if std::path::Path::new(&comment_file_path).exists() {
+                            task.comment_file_path = Some(comment_file_path.clone());
+                        }
+                    }
+                    Ok(comment_file_path)
+                } else {
+                    Err(e)
+                }
+            }
         }
     }
 

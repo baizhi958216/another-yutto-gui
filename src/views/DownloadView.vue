@@ -5,6 +5,7 @@ import TextPressure from '@/components/bits/TextPressure.vue'
 import Button from '@/components/common/Button.vue'
 import Input from '@/components/common/Input.vue'
 import Select from '@/components/common/Select.vue'
+import Tooltip from '@/components/common/Tooltip.vue'
 import { useDownload } from '@/composables/useDownload'
 import { useDownloadStore } from '@/stores/download'
 
@@ -302,6 +303,20 @@ onMounted(() => {
             >
             <span class="text-sm text-text-primary">下载封面</span>
           </label>
+          <Tooltip
+            :text="downloadStore.videoInfo?.comment_count
+              ? `约 ${downloadStore.videoInfo.comment_count} 条评论`
+              : '评论数量未知'"
+          >
+            <label class="flex gap-2 cursor-pointer items-center">
+              <input
+                v-model="downloadStore.currentConfig.withComments"
+                type="checkbox"
+                class="h-4 w-4"
+              >
+              <span class="text-sm text-text-primary">下载评论(耗时更长)</span>
+            </label>
+          </Tooltip>
         </div>
 
         <div class="flex gap-2 justify-end">

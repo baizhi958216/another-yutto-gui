@@ -6,7 +6,7 @@ import Card from '@/components/common/Card.vue'
 import Input from '@/components/common/Input.vue'
 import Select from '@/components/common/Select.vue'
 import { useToast } from '@/composables/useToast'
-import { selectFile, selectFolder } from '@/services/tauri'
+import { openInBrowser, selectFile, selectFolder } from '@/services/tauri'
 import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
 
@@ -62,6 +62,10 @@ async function handleLogout() {
       showError('退出登录失败')
     }
   }
+}
+
+function handleOpenUrl(url: string) {
+  openInBrowser(url)
 }
 
 onMounted(async () => {
@@ -247,6 +251,17 @@ onMounted(async () => {
         <Button variant="primary" @click="handleSave">
           保存设置
         </Button>
+      </div>
+
+      <div class="flex gap-12">
+        <div class="flex gap-2 w-fit cursor-pointer transition-all items-center justify-center hover:text-teal-500" @click="handleOpenUrl('https://github.com/yutto-dev/yutto')">
+          <img src="https://github.com/yutto-dev/yutto/raw/main/docs/public/logo.png" alt="yutto" class="h-8 w-auto">
+          Yutto
+        </div>
+        <div class="flex gap-2 w-fit cursor-pointer transition-all items-center justify-center hover:text-teal-500" @click="handleOpenUrl('https://github.com/baizhi958216/another-yutto-gui')">
+          <div class="i-mdi:github text-8" />
+          Another Yutto GUI
+        </div>
       </div>
     </div>
   </div>
