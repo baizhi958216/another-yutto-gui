@@ -59,7 +59,7 @@ async function handleOpenFolder() {
 </script>
 
 <template>
-  <div class="page-container">
+  <div class="page-container pt-0">
     <Button v-if="!entry" variant="secondary" class="b-none hover:bg-#f8f9fa" @click="router.push('/history')">
       <ArrowLeft :size="16" />
     </Button>
