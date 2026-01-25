@@ -79,7 +79,7 @@ onMounted(async () => {
     <Sidebar />
     <div class="flex flex-1 flex-col min-w-0">
       <TitleBar />
-      <main class="p-8 bg-#fff flex-1 relative overflow-x-hidden overflow-y-auto">
+      <main class="p-8 bg-bg-secondary flex-1 relative overflow-x-hidden overflow-y-auto">
         <div class="mx-auto h-full max-w-4xl">
           <RouterView v-slot="{ Component }">
             <Transition name="fade" mode="out-in">
@@ -104,6 +104,14 @@ onMounted(async () => {
   --color-text-tertiary: #adb5bd;
   --color-border-primary: #e2e8f0;
   --color-border-secondary: #cbd5e1;
+  --color-accent-50: #f0fdfa;
+  --color-accent-100: #ccfbf1;
+  --color-accent-200: #99f6e4;
+  --color-accent-300: #5eead4;
+  --color-accent-400: #2dd4bf;
+  --color-accent-500: #14b8a6;
+  --color-accent-600: #0d9488;
+  --color-accent-500-rgb: 20, 184, 166;
 }
 
 :root[data-theme='dark'] {
@@ -116,6 +124,14 @@ onMounted(async () => {
   --color-text-tertiary: #94a3b8;
   --color-border-primary: #1f2937;
   --color-border-secondary: #334155;
+  --color-accent-50: #111b2f;
+  --color-accent-100: #16233d;
+  --color-accent-200: #1f3157;
+  --color-accent-300: #2a4373;
+  --color-accent-400: #60a5fa;
+  --color-accent-500: #3b82f6;
+  --color-accent-600: #2563eb;
+  --color-accent-500-rgb: 59, 130, 246;
 }
 
 * {
@@ -144,32 +160,32 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--color-border-secondary);
   border-radius: 10px;
   transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #14b8a6;
+  background: var(--color-accent-500);
 }
 
 ::-webkit-scrollbar-thumb:active {
-  background: #0d9488;
+  background: var(--color-accent-600);
 }
 
 /* Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-color: var(--color-border-secondary) transparent;
 }
 
 input[type='checkbox'] {
   appearance: none;
   width: 18px;
   height: 18px;
-  border: 2px solid #cbd5e1;
+  border: 2px solid var(--color-border-secondary);
   border-radius: 4px;
-  background: white;
+  background: var(--color-bg-secondary);
   cursor: pointer;
   position: relative;
   transition: all 0.2s ease;
@@ -177,12 +193,12 @@ input[type='checkbox'] {
 }
 
 input[type='checkbox']:hover {
-  border-color: #14b8a6;
+  border-color: var(--color-accent-500);
 }
 
 input[type='checkbox']:checked {
-  background: #14b8a6;
-  border-color: #14b8a6;
+  background: var(--color-accent-500);
+  border-color: var(--color-accent-500);
 }
 
 input[type='checkbox']:checked::after {
@@ -199,7 +215,7 @@ input[type='checkbox']:checked::after {
 
 input[type='checkbox']:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+  box-shadow: 0 0 0 3px rgba(var(--color-accent-500-rgb), 0.12);
 }
 
 input[type='checkbox']:disabled {

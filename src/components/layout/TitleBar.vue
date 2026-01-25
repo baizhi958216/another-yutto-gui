@@ -1,10 +1,22 @@
 <script lang="ts" setup>
 import { getCurrentWindow } from '@tauri-apps/api/window'
-import { Minus, Sparkles, Square, X } from 'lucide-vue-next'
-import { onMounted, ref } from 'vue'
+import { Minus, Square, X } from 'lucide-vue-next'
+import { storeToRefs } from 'pinia'
+import { computed, onMounted, ref } from 'vue'
+import { useTitleBarStore } from '@/stores/titleBar'
 
 const appWindow = getCurrentWindow()
 const isMaximized = ref(false)
+const titleBarStore = useTitleBarStore()
+const { branding } = storeToRefs(titleBarStore)
+
+const visibleActions = computed(() =>
+  branding.value.actions.filter(action => !action.hidden),
+)
+
+const showBranding = computed(() =>
+  branding.value.visible && (branding.value.title || visibleActions.value.length > 0),
+)
 
 onMounted(async () => {
   isMaximized.value = await appWindow.isMaximized()
@@ -32,12 +44,25 @@ async function closeWindow() {
   <div class="bg-bg-secondary flex select-none items-center relative">
     <div data-tauri-drag-region class="flex w-full items-center justify-between">
       <!-- App Branding -->
-      <div class="flex gap-2 items-center relative z--1">
-        <div class="text-white rounded-lg bg-teal-400 flex h-6 w-6 shadow-sm items-center justify-center">
-          <Sparkles :size="14" />
+      <div data-tauri-drag-region class="px-3 flex flex-1 gap-3 min-w-0 items-center">
+        <div v-if="showBranding" data-tauri-drag-region class="flex gap-3 min-w-0 items-center">
+          <div v-if="visibleActions.length" class="flex gap-2 items-center">
+            <button
+              v-for="action in visibleActions"
+              :key="action.id"
+              class="text-xs text-text-secondary font-semibold p-1 border border-border-primary rounded-full bg-bg-secondary transition-colors hover:text-text-primary hover:border-teal-500 hover:bg-teal-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              :aria-label="action.label"
+              :disabled="action.disabled"
+              @click="action.onClick?.()"
+              v-html="action.label"
+            />
+          </div>
+          <div class="flex gap-2 min-w-0 items-center">
+            <span data-tauri-drag-region class="text-sm text-text-primary font-semibold truncate">
+              {{ branding.title }}
+            </span>
+          </div>
         </div>
-        <span class="text-sm text-teal-600 tracking-wide font-bold">yutto</span>
-        <span class="text-[10px] text-teal-400 font-bold px-1.5 py-0.5 rounded bg-teal-50 uppercase">GUI</span>
       </div>
 
       <!-- Window Controls -->

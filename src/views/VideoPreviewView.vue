@@ -11,6 +11,7 @@ import Tooltip from '@/components/common/Tooltip.vue'
 import { readCsvFile } from '@/services/tauri'
 import { useDownloadStore } from '@/stores/download'
 import { useHistoryStore } from '@/stores/history'
+import { useTitleBarStore } from '@/stores/titleBar'
 import { formatFileSize, formatRelativeTime } from '@/utils/format'
 import { formatAudioQuality, formatVideoQuality } from '@/utils/quality'
 import 'plyr/dist/plyr.css'
@@ -115,7 +116,7 @@ function changeSortType(type: SortType) {
   sortType.value = type
   currentPage.value = 1 // 切换排序时重置到第一页
 }
-
+const titleBar = useTitleBarStore()
 onMounted(async () => {
   if (videoElement.value) {
     player = new Plyr(videoElement.value, {
@@ -128,10 +129,23 @@ onMounted(async () => {
   if (entry.value?.commentFilePath) {
     await loadLocalComments()
   }
+
+  titleBar.setBranding({
+    title: entry.value?.title,
+    actions: [
+      { id: 'back', label:
+      `<div><div class="i-ic:round-arrow-back text-5" /></div>`, onClick: () => {
+        router.push('/history')
+      } },
+    ],
+  })
 })
 
 onUnmounted(() => {
   player?.destroy()
+  titleBar.setBranding({
+    visible: false,
+  })
 })
 
 async function loadLocalComments() {
@@ -245,7 +259,7 @@ async function handleOpenFolder() {
 
 <template>
   <div class="page-container pt-0">
-    <Button v-if="!entry" variant="secondary" class="b-none hover:bg-#f8f9fa" @click="router.push('/history')">
+    <Button v-if="!entry" variant="secondary" class="b-none hover:bg-bg-tertiary" @click="router.push('/history')">
       <ArrowLeft :size="16" />
     </Button>
 
@@ -262,21 +276,6 @@ async function handleOpenFolder() {
     </div>
 
     <div v-else class="mt-6 space-y-6">
-      <div class="flex gap-2">
-        <Button class="b-none h-fit hover:bg-#f8f9fa" variant="secondary" @click="router.push('/history')">
-          <ArrowLeft :size="16" @click="router.push('/history')" />
-        </Button>
-
-        <Tooltip
-          :text="entry.title"
-          class="w-full"
-        >
-          <h1 class="text-2xl text-text-primary font-bold w-90% truncate">
-            {{ entry.title }}
-          </h1>
-        </Tooltip>
-      </div>
-
       <div class="video-container">
         <video
           ref="videoElement"
@@ -525,21 +524,21 @@ async function handleOpenFolder() {
   object-fit: contain;
 }
 
-/* Plyr custom theme - Teal colors */
+/* Plyr custom theme - Accent colors */
 :deep(.plyr--video) {
-  --plyr-color-main: #14b8a6;
+  --plyr-color-main: var(--color-accent-500);
 }
 
 :deep(.plyr__control--overlaid) {
-  background: rgba(20, 184, 166, 0.9);
+  background: rgba(var(--color-accent-500-rgb), 0.9);
 }
 
 :deep(.plyr__control:hover) {
-  background: #0d9488;
+  background: var(--color-accent-600);
 }
 
 :deep(.plyr__menu__container .plyr__control[role='menuitemradio'][aria-checked='true']::before) {
-  background: #14b8a6;
+  background: var(--color-accent-500);
 }
 
 /* 评论列表动画 */

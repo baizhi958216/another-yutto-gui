@@ -32,7 +32,7 @@ const props = withDefaults(defineProps<TextPressureProps>(), {
   flex: true,
   stroke: false,
   scale: false,
-  textColor: '#14b8a6',
+  textColor: 'var(--color-accent-500)',
   strokeColor: '#FF0000',
   strokeWidth: 2,
   className: '',

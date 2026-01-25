@@ -218,7 +218,7 @@ onMounted(async () => {
             v-model="localSettings.theme"
             :options="[
               { label: '浅色', value: 'light' },
-              { label: '深色（开发中）', value: 'dark' },
+              { label: '深色', value: 'dark' },
             ]"
           />
         </div>
@@ -255,7 +255,7 @@ onMounted(async () => {
 
       <div class="flex gap-12">
         <div class="flex gap-2 w-fit cursor-pointer transition-all items-center justify-center hover:text-teal-500" @click="handleOpenUrl('https://github.com/yutto-dev/yutto')">
-          <img src="https://github.com/yutto-dev/yutto/raw/main/docs/public/logo.png" alt="yutto" class="h-8 w-auto">
+          <img src="/logo.png" alt="yutto" class="h-8 w-auto">
           Yutto
         </div>
         <div class="flex gap-2 w-fit cursor-pointer transition-all items-center justify-center hover:text-teal-500" @click="handleOpenUrl('https://github.com/baizhi958216/another-yutto-gui')">

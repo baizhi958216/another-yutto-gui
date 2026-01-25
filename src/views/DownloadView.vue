@@ -178,7 +178,7 @@ onMounted(() => {
       <div v-if="!downloadStore.videoInfo" class="mb-10 mt-20 text-center">
         <TextPressure
           text="Another Yutto GUI"
-          text-color="#14b8a6"
+          text-color="var(--color-accent-500)"
           stroke-color="#27FF64"
           :min-font-size="36"
           :italic="false"

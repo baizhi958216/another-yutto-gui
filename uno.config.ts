@@ -18,8 +18,17 @@ export default defineConfig({
   theme: {
     colors: {
       // 主色调 - Teal (青色)
-      primary: '#14b8a6', // teal-500
-      secondary: '#0d9488', // teal-600
+      primary: 'var(--color-accent-500)',
+      secondary: 'var(--color-accent-600)',
+      teal: {
+        50: 'var(--color-accent-50)',
+        100: 'var(--color-accent-100)',
+        200: 'var(--color-accent-200)',
+        300: 'var(--color-accent-300)',
+        400: 'var(--color-accent-400)',
+        500: 'var(--color-accent-500)',
+        600: 'var(--color-accent-600)',
+      },
       // 背景色
       bg: {
         primary: 'var(--color-bg-primary)',

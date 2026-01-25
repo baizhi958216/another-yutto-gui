@@ -44,7 +44,7 @@ function navigateTo(name: string) {
         class="px-4 py-3.5 rounded-2xl flex gap-3 w-full transition-all duration-300 items-center"
         :class="[
           isActive(item.name)
-            ? 'bg-teal-500 text-white shadow-lg shadow-teal-200/50'
+            ? 'bg-teal-500 text-white shadow-lg shadow-teal-200'
             : 'text-text-secondary hover:bg-bg-tertiary hover:text-teal-600',
         ]"
         @click="navigateTo(item.name)"
