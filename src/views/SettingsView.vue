@@ -31,7 +31,8 @@ async function handleSelectYuttoPath() {
 }
 
 function handleSave() {
-  settingsStore.updateSettings(localSettings.value)
+  const { theme: _theme, ...rest } = localSettings.value
+  settingsStore.updateSettings(rest)
   showSuccess('设置已保存')
 }
 
@@ -202,25 +203,6 @@ onMounted(async () => {
               </Button>
             </div>
           </div>
-        </div>
-      </Card>
-
-      <!-- 外观设置 -->
-      <Card>
-        <h3 class="text-lg text-text-primary font-semibold mb-4">
-          外观设置
-        </h3>
-        <div>
-          <label class="text-sm text-text-primary font-medium mb-2 block">
-            主题
-          </label>
-          <Select
-            v-model="localSettings.theme"
-            :options="[
-              { label: '浅色', value: 'light' },
-              { label: '深色', value: 'dark' },
-            ]"
-          />
         </div>
       </Card>
 

@@ -1,10 +1,12 @@
 <script lang="ts" setup>
-import { Download, History, ListOrdered, Settings } from 'lucide-vue-next'
+import { Download, History, ListOrdered, Moon, Settings, Sun } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useTheme } from '@/composables/useTheme'
 
 const route = useRoute()
 const router = useRouter()
+const { isDark, toggleTheme } = useTheme()
 
 const navItems = computed(() => [
   { name: 'download', label: '下载', icon: Download },
@@ -51,6 +53,32 @@ function navigateTo(name: string) {
       >
         <component :is="item.icon" :size="20" class="flex-shrink-0" />
         <span class="text-sm font-medium hidden md:block">{{ item.label }}</span>
+      </button>
+    </div>
+
+    <div class="mt-auto px-3 pb-6 w-full">
+      <button
+        class="p-2.5 border border-border-primary rounded-2xl bg-bg-secondary flex flex-col gap-2 w-full transition-all hover:bg-bg-tertiary md:flex-row md:items-center md:justify-between"
+        :aria-pressed="isDark"
+        aria-label="Toggle theme"
+        @click="toggleTheme"
+      >
+        <div class="flex gap-3 items-center">
+          <div class="text-teal-600 border border-border-primary rounded-xl bg-bg-tertiary flex h-8 w-8 items-center justify-center">
+            <Sun v-if="!isDark" :size="18" />
+            <Moon v-else :size="18" />
+          </div>
+          <span class="text-sm text-text-secondary font-medium hidden md:block">主题</span>
+        </div>
+        <div
+          class="rounded-full h-5 w-9 transition-colors relative"
+          :class="isDark ? 'bg-teal-500' : 'bg-border-secondary'"
+        >
+          <span
+            class="rounded-full bg-white h-4 w-4 transition-transform left-0.5 top-0.5 absolute"
+            :class="isDark ? 'translate-x-4' : 'translate-x-0'"
+          />
+        </div>
       </button>
     </div>
   </nav>

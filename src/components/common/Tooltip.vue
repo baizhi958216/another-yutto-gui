@@ -11,14 +11,14 @@ const showTooltip = ref(false)
 
 <template>
   <div
-    class="relative inline-block"
+    class="inline-block relative"
     @mouseenter="showTooltip = true"
     @mouseleave="showTooltip = false"
   >
     <slot />
     <div
       v-if="showTooltip"
-      class="tooltip absolute z-50 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap pointer-events-none"
+      class="tooltip text-xs text-white px-2 py-1 rounded bg-gray-800 pointer-events-none whitespace-nowrap absolute z-50"
       :class="{
         'bottom-full left-1/2 -translate-x-1/2 mb-2': position === 'top' || !position,
         'top-full left-1/2 -translate-x-1/2 mt-2': position === 'bottom',
@@ -28,7 +28,7 @@ const showTooltip = ref(false)
     >
       {{ text }}
       <div
-        class="tooltip-arrow absolute w-2 h-2 bg-gray-800 transform rotate-45"
+        class="tooltip-arrow bg-gray-800 h-2 w-2 rotate-45 transform absolute"
         :class="{
           'bottom-0 left-1/2 -translate-x-1/2 translate-y-1': position === 'top' || !position,
           'top-0 left-1/2 -translate-x-1/2 -translate-y-1': position === 'bottom',
