@@ -68,7 +68,7 @@ export const useQueueStore = defineStore('queue', () => {
 
       console.log(`[Queue Store] 更新任务 ${id.substring(0, 8)}: progress=${updates.progress?.toFixed(1)}%, speed=${updates.speed}`)
 
-      // If task just completed, save to history
+      // If task just completed, save to history and remove from queue
       if (justCompleted && newTask.videoInfo) {
         try {
           const historyStore = useHistoryStore()
@@ -154,6 +154,12 @@ export const useQueueStore = defineStore('queue', () => {
             commentFilePath,
           })
           console.log(`[Queue Store] 已保存到历史记录: ${newTask.videoInfo.title}`)
+
+          // Automatically remove completed task from queue
+          setTimeout(() => {
+            removeTask(id)
+            console.log(`[Queue Store] 已自动清除完成的任务: ${newTask.videoInfo?.title}`)
+          }, 1000) // Wait 1 second to let user see the completion status
         }
         catch (error) {
           console.error('[Queue Store] 保存历史记录失败:', error)

@@ -34,6 +34,9 @@ export interface DownloadTask {
   commentDownloadProgress?: string
   isDownloadingComments: boolean
   startTime: number
+  processId?: number
+  pausedAtProgress?: number
+  pausedAtSpeed?: string
 }
 
 export interface DownloadProgress {

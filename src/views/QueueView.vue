@@ -146,7 +146,15 @@ function getDownloadTags(task: any): string[] {
               <span :class="getStatusColor(task.status)">
                 {{ getStatusText(task.status, task) }}
               </span>
-              <span v-if="task.isDownloadingComments && task.commentDownloadProgress">
+              <!-- Show paused progress if available -->
+              <span v-if="task.status === 'paused' && task.pausedAtProgress !== undefined">
+                {{ task.pausedAtProgress.toFixed(1) }}%
+              </span>
+              <span v-if="task.status === 'paused' && task.pausedAtSpeed">
+                {{ task.pausedAtSpeed }}
+              </span>
+              <!-- Show current progress for downloading tasks -->
+              <span v-else-if="task.isDownloadingComments && task.commentDownloadProgress">
                 {{ task.commentDownloadProgress }}
               </span>
               <span v-else-if="task.status === 'downloading'">

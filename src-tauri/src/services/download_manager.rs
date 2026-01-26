@@ -137,6 +137,9 @@ impl DownloadManager {
             comment_download_progress: None, // Will be updated during comment download
             is_downloading_comments: false, // Will be set to true when downloading comments
             start_time: Self::now_millis(),
+            process_id: None, // Will be set after process spawns
+            paused_at_progress: None,
+            paused_at_speed: None,
         };
 
         downloads.insert(task_id.clone(), task);
@@ -219,6 +222,18 @@ impl DownloadManager {
             format!("启动 yutto 失败: {}", e)
         })?;
 
+        // Capture process ID for pause/resume control
+        let pid = child.id();
+        println!("[下载管理器] 进程 PID: {:?}", pid);
+
+        // Store PID in task
+        {
+            let mut downloads_guard = downloads.lock().await;
+            if let Some(task) = downloads_guard.get_mut(&task_id) {
+                task.process_id = pid;
+            }
+        }
+
         // Get stdout and stderr
         let stdout = child.stdout.take().ok_or("无法获取 stdout")?;
         let stderr = child.stderr.take().ok_or("无法获取 stderr")?;
@@ -273,6 +288,7 @@ impl DownloadManager {
             if let Some(task) = downloads.get_mut(&task_id) {
                 task.status = DownloadStatus::Completed;
                 task.progress = 100.0;
+                task.process_id = None; // Clear PID on completion
             }
             Ok(())
         } else {
@@ -528,10 +544,92 @@ impl DownloadManager {
     }
 
     pub async fn cancel_download(&self, task_id: &str) -> Result<(), String> {
+        use crate::services::process_control::ProcessController;
+
         let mut downloads = self.active_downloads.lock().await;
+
+        // Get PID before removing task
+        let pid = downloads.get(task_id)
+            .and_then(|task| task.process_id);
+
+        // Kill process if it exists
+        if let Some(pid) = pid {
+            if ProcessController::is_process_alive(pid) {
+                let _ = ProcessController::kill_process(pid);
+                println!("[下载管理器] 已终止进程 PID: {}", pid);
+            }
+        }
+
+        // Remove task
         downloads.remove(task_id);
         drop(downloads);
+
+        // Start pending tasks
         Self::start_pending_if_available(self.active_downloads.clone(), self.max_concurrent.clone()).await;
+        Ok(())
+    }
+
+    pub async fn pause_download(&self, task_id: &str) -> Result<(), String> {
+        use crate::services::process_control::ProcessController;
+
+        let mut downloads = self.active_downloads.lock().await;
+        let task = downloads.get_mut(task_id)
+            .ok_or("Task not found")?;
+
+        // Check if task is downloading
+        if task.status != DownloadStatus::Downloading {
+            return Err("Task is not downloading".to_string());
+        }
+
+        // Get PID
+        let pid = task.process_id
+            .ok_or("Process ID not available")?;
+
+        // Save current state
+        task.paused_at_progress = Some(task.progress);
+        task.paused_at_speed = Some(task.speed.clone());
+
+        // Pause the process
+        ProcessController::pause_process(pid)?;
+
+        // Update status
+        task.status = DownloadStatus::Paused;
+
+        println!("[下载管理器] 已暂停任务 {} (PID: {})", task_id, pid);
+        Ok(())
+    }
+
+    pub async fn resume_download(&self, task_id: &str) -> Result<(), String> {
+        use crate::services::process_control::ProcessController;
+
+        let mut downloads = self.active_downloads.lock().await;
+        let task = downloads.get_mut(task_id)
+            .ok_or("Task not found")?;
+
+        // Check if task is paused
+        if task.status != DownloadStatus::Paused {
+            return Err("Task is not paused".to_string());
+        }
+
+        // Get PID
+        let pid = task.process_id
+            .ok_or("Process ID not available")?;
+
+        // Check if process still exists
+        if !ProcessController::is_process_alive(pid) {
+            task.status = DownloadStatus::Error;
+            task.error = Some("进程已终止".to_string());
+            task.process_id = None;
+            return Err("Process no longer exists".to_string());
+        }
+
+        // Resume the process
+        ProcessController::resume_process(pid)?;
+
+        // Update status
+        task.status = DownloadStatus::Downloading;
+
+        println!("[下载管理器] 已恢复任务 {} (PID: {})", task_id, pid);
         Ok(())
     }
 

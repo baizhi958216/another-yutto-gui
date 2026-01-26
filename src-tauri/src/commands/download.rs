@@ -17,19 +17,17 @@ pub async fn start_download(
 #[tauri::command]
 pub async fn pause_download(
     download_id: String,
-    _manager: State<'_, Arc<DownloadManager>>,
+    manager: State<'_, Arc<DownloadManager>>,
 ) -> Result<(), String> {
-    // TODO: Implement download pause
-    Err("暂停功能暂未实现".to_string())
+    manager.pause_download(&download_id).await
 }
 
 #[tauri::command]
 pub async fn resume_download(
     download_id: String,
-    _manager: State<'_, Arc<DownloadManager>>,
+    manager: State<'_, Arc<DownloadManager>>,
 ) -> Result<(), String> {
-    // TODO: Implement download resume
-    Err("恢复功能暂未实现".to_string())
+    manager.resume_download(&download_id).await
 }
 
 #[tauri::command]
