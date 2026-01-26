@@ -23,7 +23,7 @@ let animationId: number | null = null
 let isAudioContextInitialized = false
 
 // 频谱条数量
-const barCount = 64
+const barCount = 96
 
 // 过渡动画相关
 const transitionProgress = ref(0) // 0 = idle, 1 = playing
@@ -41,14 +41,30 @@ function getCSSColor(varName: string, alpha: number = 1): string {
   return `rgba(99, 102, 241, ${alpha})`
 }
 
+function getVisualizerMetrics(width: number, height: number) {
+  const step = width / barCount
+  const barWidth = step * 0.55
+  const gap = step - barWidth
+  const topPadding = Math.max(6, height * 0.12)
+  const bottomPadding = Math.max(8, height * 0.18)
+  const baseline = height - bottomPadding
+  const maxBarHeight = Math.max(4, baseline - topPadding)
+  const minBarHeight = Math.max(1.5, maxBarHeight * 0.04)
+  return { barWidth, gap, baseline, maxBarHeight, minBarHeight }
+}
+
+function clampAlpha(value: number): number {
+  return Math.min(1, Math.max(0, value))
+}
+
 function initAudioContext() {
   if (isAudioContextInitialized || !audioElement.value)
     return
 
   audioContext = new AudioContext()
   analyser = audioContext.createAnalyser()
-  analyser.fftSize = 256
-  analyser.smoothingTimeConstant = 0.8
+  analyser.fftSize = 512
+  analyser.smoothingTimeConstant = 0.85
 
   source = audioContext.createMediaElementSource(audioElement.value)
   source.connect(analyser)
@@ -130,72 +146,67 @@ function draw() {
   const dataArray = new Uint8Array(bufferLength)
   analyser.getByteFrequencyData(dataArray)
 
-  // 获取实际显示尺寸
   const rect = canvas.getBoundingClientRect()
   const dpr = window.devicePixelRatio || 1
 
-  // 设置 canvas 实际像素尺寸
   canvas.width = rect.width * dpr
   canvas.height = rect.height * dpr
-
-  // 缩放上下文以匹配 CSS 尺寸
-  ctx.scale(dpr, dpr)
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
   const width = rect.width
   const height = rect.height
 
-  // 清除画布
   ctx.clearRect(0, 0, width, height)
 
-  // 计算每个条的宽度和间距
-  const barWidth = (width / barCount) * 0.7
-  const gap = (width / barCount) * 0.3
-  const centerY = height / 2
-
-  // 获取当前过渡进度
+  const { barWidth, gap, baseline, maxBarHeight, minBarHeight } = getVisualizerMetrics(width, height)
   const t = transitionProgress.value
-  const minBarHeight = 2 // idle 状态的最小高度
+  const offset = gap / 2
+  const isDarkTheme = document.documentElement.classList.contains('dark')
+  const alphaBoost = isDarkTheme ? 1 : 1.45
+  const strongAccent = isDarkTheme ? '--color-accent-400-rgb' : '--color-accent-600-rgb'
+  const softAccent = '--color-accent-500-rgb'
 
-  // 绘制频谱条（镜像效果）
+  ctx.lineJoin = 'round'
+  ctx.lineCap = 'round'
+
   for (let i = 0; i < barCount; i++) {
-    // 从频谱数据中采样
-    const dataIndex = Math.floor((i / barCount) * bufferLength)
-    const value = dataArray[dataIndex]
-    const targetBarHeight = (value / 255) * (height * 0.4)
+    const pos = i / (barCount - 1)
+    const dataIndex = Math.floor(pos ** 1.6 * (bufferLength - 1))
+    const value = dataArray[dataIndex] ?? 0
+    const normalized = (value / 255) ** 1.5
+    const edge = Math.abs(pos - 0.5) * 2
+    const edgeFade = 0.7 + 0.3 * (1 - edge * edge)
+    const barHeight = minBarHeight + (maxBarHeight * normalized * edgeFade) * t
+    const x = offset + i * (barWidth + gap)
+    const y = baseline - barHeight
+    const baseAlpha = clampAlpha((0.2 + 0.75 * t) * edgeFade * alphaBoost)
 
-    // 根据过渡进度插值计算实际高度
-    const barHeight = minBarHeight + (targetBarHeight - minBarHeight) * t
-
-    const x = i * (barWidth + gap)
-
-    // 根据过渡进度插值计算透明度
-    const baseAlpha = 0.4 + 0.6 * t
-
-    // 创建渐变色
-    const gradient = ctx.createLinearGradient(0, centerY - barHeight, 0, centerY + barHeight)
-    gradient.addColorStop(0, getCSSColor('--color-accent-400-rgb', 0.9 * baseAlpha))
-    gradient.addColorStop(0.5, getCSSColor('--color-accent-500-rgb', baseAlpha))
-    gradient.addColorStop(1, getCSSColor('--color-accent-400-rgb', 0.9 * baseAlpha))
+    const gradient = ctx.createLinearGradient(0, y, 0, baseline)
+    gradient.addColorStop(0, getCSSColor(strongAccent, 0.95 * baseAlpha))
+    gradient.addColorStop(1, getCSSColor(softAccent, 0.25 * baseAlpha))
 
     ctx.fillStyle = gradient
-
-    // 绘制上半部分
+    const radius = Math.min(barWidth / 2, barHeight / 2)
     ctx.beginPath()
-    ctx.roundRect(x, centerY - barHeight, barWidth, barHeight, [barWidth / 2, barWidth / 2, 0, 0])
+    ctx.roundRect(x, y, barWidth, barHeight, radius)
     ctx.fill()
 
-    // 绘制下半部分（镜像）
-    ctx.beginPath()
-    ctx.roundRect(x, centerY, barWidth, barHeight, [0, 0, barWidth / 2, barWidth / 2])
-    ctx.fill()
+    if (barHeight > 4) {
+      ctx.strokeStyle = getCSSColor(strongAccent, 0.6 * baseAlpha)
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.moveTo(x, y + 0.5)
+      ctx.lineTo(x + barWidth, y + 0.5)
+      ctx.stroke()
+    }
   }
 
-  // 绘制中心线
-  ctx.strokeStyle = getCSSColor('--color-accent-500-rgb', 0.3)
+  const baselineAlpha = isDarkTheme ? (0.12 + 0.18 * t) : (0.24 + 0.24 * t)
+  ctx.strokeStyle = getCSSColor(strongAccent, baselineAlpha)
   ctx.lineWidth = 1
   ctx.beginPath()
-  ctx.moveTo(0, centerY)
-  ctx.lineTo(width, centerY)
+  ctx.moveTo(0, baseline + 0.5)
+  ctx.lineTo(width, baseline + 0.5)
   ctx.stroke()
 
   animationId = requestAnimationFrame(draw)
@@ -215,39 +226,50 @@ function drawIdle() {
 
   canvas.width = rect.width * dpr
   canvas.height = rect.height * dpr
-  ctx.scale(dpr, dpr)
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
   const width = rect.width
   const height = rect.height
 
   ctx.clearRect(0, 0, width, height)
 
-  const barWidth = (width / barCount) * 0.7
-  const gap = (width / barCount) * 0.3
-  const centerY = height / 2
+  const { barWidth, gap, baseline, maxBarHeight, minBarHeight } = getVisualizerMetrics(width, height)
+  const offset = gap / 2
+  const idleLevel = 0.08
+  const isDarkTheme = document.documentElement.classList.contains('dark')
+  const alphaBoost = isDarkTheme ? 1 : 1.7
+  const strongAccent = isDarkTheme ? '--color-accent-400-rgb' : '--color-accent-600-rgb'
+  const softAccent = '--color-accent-500-rgb'
 
-  // 绘制静态的小条
+  ctx.lineJoin = 'round'
+  ctx.lineCap = 'round'
+
   for (let i = 0; i < barCount; i++) {
-    const x = i * (barWidth + gap)
-    const barHeight = 2
+    const pos = i / (barCount - 1)
+    const edge = Math.abs(pos - 0.5) * 2
+    const edgeFade = 0.7 + 0.3 * (1 - edge * edge)
+    const barHeight = minBarHeight + maxBarHeight * idleLevel * edgeFade
+    const x = offset + i * (barWidth + gap)
+    const y = baseline - barHeight
+    const baseAlpha = clampAlpha(0.26 * edgeFade * alphaBoost)
 
-    ctx.fillStyle = getCSSColor('--color-accent-500-rgb', 0.4)
+    const gradient = ctx.createLinearGradient(0, y, 0, baseline)
+    gradient.addColorStop(0, getCSSColor(strongAccent, 0.7 * baseAlpha))
+    gradient.addColorStop(1, getCSSColor(softAccent, 0.2 * baseAlpha))
 
+    ctx.fillStyle = gradient
+    const radius = Math.min(barWidth / 2, barHeight / 2)
     ctx.beginPath()
-    ctx.roundRect(x, centerY - barHeight, barWidth, barHeight, [barWidth / 2, barWidth / 2, 0, 0])
-    ctx.fill()
-
-    ctx.beginPath()
-    ctx.roundRect(x, centerY, barWidth, barHeight, [0, 0, barWidth / 2, barWidth / 2])
+    ctx.roundRect(x, y, barWidth, barHeight, radius)
     ctx.fill()
   }
 
-  // 绘制中心线
-  ctx.strokeStyle = getCSSColor('--color-accent-500-rgb', 0.3)
+  const baselineAlpha = isDarkTheme ? 0.12 : 0.22
+  ctx.strokeStyle = getCSSColor(strongAccent, baselineAlpha)
   ctx.lineWidth = 1
   ctx.beginPath()
-  ctx.moveTo(0, centerY)
-  ctx.lineTo(width, centerY)
+  ctx.moveTo(0, baseline + 0.5)
+  ctx.lineTo(width, baseline + 0.5)
   ctx.stroke()
 }
 
@@ -435,7 +457,7 @@ onUnmounted(() => {
       <!-- 播放控制 -->
       <div class="flex gap-6 items-center justify-center">
         <button
-          class="bg-accent-500 hover:bg-accent-600 text-white rounded-full flex h-14 w-14 cursor-pointer transition-all duration-150 items-center justify-center hover:scale-105"
+          class="bg-accent-500 hover:bg-accent-600 text-primary rounded-full flex h-14 w-14 cursor-pointer transition-all duration-150 items-center justify-center hover:scale-105"
           @click="togglePlay"
         >
           <Pause v-if="isPlaying" :size="28" />

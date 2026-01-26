@@ -70,7 +70,7 @@ function handleThemeToggle(event?: MouseEvent) {
     <div class="mb-8 flex flex-col gap-3 items-center">
       <div class="flex w-12 transition-all duration-300 items-center justify-center md:h-34 md:w-34 hover:rotate-6">
         <div class="text-teal-500 flex items-center justify-center">
-          <img src="/logo.png" alt="logo" class="cursor-pointer" @click="router.push('/download')">
+          <img src="/logo.png" alt="logo" class="cursor-pointer" @click="router.push('/')">
         </div>
       </div>
       <!-- <div class="text-center hidden md:block">

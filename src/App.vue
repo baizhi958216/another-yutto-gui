@@ -110,9 +110,11 @@ onMounted(async () => {
   --color-accent-200: #99f6e4;
   --color-accent-300: #5eead4;
   --color-accent-400: #2dd4bf;
+  --color-accent-400-rgb: 45, 212, 191;
   --color-accent-500: #14b8a6;
   --color-accent-600: #0d9488;
   --color-accent-500-rgb: 20, 184, 166;
+  --color-accent-600-rgb: 13, 148, 136;
   --theme-transition-x: 50vw;
   --theme-transition-y: 50vh;
   --theme-transition-radius: 0px;
@@ -133,9 +135,11 @@ onMounted(async () => {
   --color-accent-200: #1f3157;
   --color-accent-300: #2a4373;
   --color-accent-400: #60a5fa;
+  --color-accent-400-rgb: 96, 165, 250;
   --color-accent-500: #3b82f6;
   --color-accent-600: #2563eb;
   --color-accent-500-rgb: 59, 130, 246;
+  --color-accent-600-rgb: 37, 99, 235;
 }
 
 * {
