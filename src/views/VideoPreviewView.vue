@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import type { Comment } from '@/types'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
 import { ArrowLeft, Download, FolderOpen } from 'lucide-vue-next'
@@ -8,13 +7,14 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AudioVisualizer from '@/components/common/AudioVisualizer.vue'
 import Button from '@/components/common/Button.vue'
-import { readCsvFile } from '@/services/tauri'
+import CommentList from '@/components/common/CommentList.vue'
+import { useComments } from '@/composables/useComments'
 import { useDownloadStore } from '@/stores/download'
 import { useHistoryStore } from '@/stores/history'
 import { useTitleBarStore } from '@/stores/titleBar'
-import { parseCsvComments } from '@/utils/csv-parser'
 import { formatFileSize, formatRelativeTime } from '@/utils/format'
 import { formatAudioQuality, formatVideoQuality } from '@/utils/quality'
+
 import 'plyr/dist/plyr.css'
 
 const Plyr = (PlyrNamespace as any).default || PlyrNamespace
@@ -37,88 +37,25 @@ const isAudioOnly = computed(() => entry.value?.audioOnly ?? false)
 const videoElement = ref<HTMLVideoElement | null>(null)
 let player: Plyr | null = null
 
-// 评论相关状态
-const comments = ref<Comment[]>([])
-const loadingComments = ref(false)
-const commentsError = ref<string | null>(null)
-const hasCommentFile = ref(false)
+// 使用评论组合式函数
+const {
+  paginatedComments,
+  loadingComments,
+  commentsError,
+  hasCommentFile,
+  sortType,
+  currentPage,
+  totalComments,
+  totalPages,
+  hasNextPage,
+  hasPrevPage,
+  nextPage,
+  prevPage,
+  goToPage,
+  changeSortType,
+  loadLocalComments,
+} = useComments()
 
-// 排序相关状态
-type SortType = 'time' | 'likes'
-const sortType = ref<SortType>('time')
-
-// 分页相关状态
-const currentPage = ref(1)
-const pageSize = 20
-const totalComments = ref(0)
-
-const sortedComments = computed(() => {
-  const sorted = [...comments.value]
-  if (sortType.value === 'time') {
-    // 按时间降序排序（最新的在前）
-    return sorted.sort((a, b) => b.ctime - a.ctime)
-  }
-  else {
-    // 按点赞数降序排序（点赞最多的在前）
-    return sorted.sort((a, b) => b.like - a.like)
-  }
-})
-
-const paginatedComments = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  const end = start + pageSize
-  return sortedComments.value.slice(start, end)
-})
-
-const totalPages = computed(() => {
-  return Math.ceil(totalComments.value / pageSize)
-})
-
-const hasNextPage = computed(() => {
-  return currentPage.value < totalPages.value
-})
-
-const hasPrevPage = computed(() => {
-  return currentPage.value > 1
-})
-
-function nextPage() {
-  if (hasNextPage.value) {
-    currentPage.value++
-    // Scroll to top of comments section
-    const commentsSection = document.querySelector('.comments-section')
-    if (commentsSection) {
-      commentsSection.scrollIntoView({ behavior: 'smooth' })
-    }
-  }
-}
-
-function prevPage() {
-  if (hasPrevPage.value) {
-    currentPage.value--
-    // Scroll to top of comments section
-    const commentsSection = document.querySelector('.comments-section')
-    if (commentsSection) {
-      commentsSection.scrollIntoView({ behavior: 'smooth' })
-    }
-  }
-}
-
-function goToPage(page: number) {
-  if (page >= 1 && page <= totalPages.value) {
-    currentPage.value = page
-    // Scroll to top of comments section
-    const commentsSection = document.querySelector('.comments-section')
-    if (commentsSection) {
-      commentsSection.scrollIntoView({ behavior: 'smooth' })
-    }
-  }
-}
-
-function changeSortType(type: SortType) {
-  sortType.value = type
-  currentPage.value = 1 // 切换排序时重置到第一页
-}
 const titleBar = useTitleBarStore()
 onMounted(async () => {
   // 只在非音频模式下初始化视频播放器
@@ -131,7 +68,7 @@ onMounted(async () => {
 
   // 自动加载本地评论
   if (entry.value?.commentFilePath) {
-    await loadLocalComments()
+    await loadLocalComments(entry.value.commentFilePath)
   }
 
   titleBar.setBranding({
@@ -151,34 +88,6 @@ onUnmounted(() => {
     visible: false,
   })
 })
-
-async function loadLocalComments() {
-  if (!entry.value?.commentFilePath)
-    return
-
-  loadingComments.value = true
-  commentsError.value = null
-
-  try {
-    const csvContent = await readCsvFile(entry.value.commentFilePath)
-    comments.value = parseCsvComments(csvContent)
-    totalComments.value = comments.value.length
-    currentPage.value = 1 // Reset to first page
-    hasCommentFile.value = true
-  }
-  catch (error) {
-    console.error('Failed to load local comments:', error)
-    commentsError.value = '加载本地评论失败'
-    hasCommentFile.value = false
-  }
-  finally {
-    loadingComments.value = false
-  }
-}
-
-function formatCommentTime(timestamp: number): string {
-  return formatRelativeTime(timestamp * 1000) // 转换为毫秒
-}
 
 async function handleRedownload() {
   if (!entry.value)
@@ -290,161 +199,22 @@ async function handleOpenFolder() {
       </div>
 
       <!-- 评论区域 -->
-      <div v-if="hasCommentFile" class="comments-section mt-8">
-        <div class="mb-4 flex items-center justify-between">
-          <h2 class="text-xl text-text-primary font-bold flex gap-2 items-center">
-            评论 {{ totalComments > 0 ? `(${totalComments})` : '' }}
-          </h2>
-
-          <!-- 排序选项 -->
-          <div class="flex gap-2">
-            <button
-              class="text-sm px-3 py-1.5 rounded transition-colors"
-              :class="sortType === 'time' ? 'bg-primary text-white' : 'bg-bg-secondary text-text-primary hover:bg-bg-tertiary'"
-              @click="changeSortType('time')"
-            >
-              按时间
-            </button>
-            <button
-              class="text-sm px-3 py-1.5 rounded transition-colors"
-              :class="sortType === 'likes' ? 'bg-primary text-white' : 'bg-bg-secondary text-text-primary hover:bg-bg-tertiary'"
-              @click="changeSortType('likes')"
-            >
-              按点赞
-            </button>
-          </div>
-        </div>
-
-        <div v-if="commentsError" class="text-sm text-error p-4 rounded bg-bg-secondary">
-          {{ commentsError }}
-        </div>
-
-        <div v-if="loadingComments" class="py-8 text-center">
-          <div class="text-text-tertiary">
-            加载评论中...
-          </div>
-        </div>
-
-        <div v-else-if="totalComments === 0" class="py-8 text-center">
-          <div class="text-text-tertiary">
-            暂无评论
-          </div>
-        </div>
-
-        <div v-else>
-          <TransitionGroup name="comment-list" tag="div" class="space-y-4">
-            <div
-              v-for="comment in paginatedComments"
-              :key="comment.rpid"
-              class="p-4 rounded-lg bg-bg-secondary transition-colors hover:bg-bg-tertiary"
-            >
-              <div class="flex gap-3">
-                <!-- 用户头像 -->
-                <img
-                  :src="comment.avatar"
-                  :alt="comment.uname"
-                  class="rounded-full flex-shrink-0 h-10 w-10"
-                  referrerpolicy="no-referrer"
-                >
-                <div class="flex-1 min-w-0">
-                  <!-- 用户信息 -->
-                  <div class="mb-2 flex gap-2 items-center">
-                    <span class="text-sm text-text-primary font-medium">
-                      {{ comment.uname }}
-                    </span>
-                    <span class="text-xs text-text-tertiary">
-                      LV{{ comment.current_level }}
-                    </span>
-                    <span class="text-xs text-text-tertiary">
-                      {{ formatCommentTime(comment.ctime) }}
-                    </span>
-                    <span v-if="comment.location" class="text-xs text-text-tertiary">
-                      {{ comment.location }}
-                    </span>
-                  </div>
-                  <!-- 评论内容 -->
-                  <div class="text-sm text-text-primary whitespace-pre-wrap break-words">
-                    {{ comment.content }}
-                  </div>
-                  <!-- 评论图片 -->
-                  <div v-if="comment.pictures && comment.pictures.length > 0" class="mt-2 flex flex-wrap gap-2">
-                    <img
-                      v-for="(pic, idx) in comment.pictures"
-                      :key="idx"
-                      :src="pic.img_src"
-                      class="rounded max-h-32 object-cover"
-                      referrerpolicy="no-referrer"
-                    >
-                  </div>
-                  <!-- 点赞数 -->
-                  <div class="text-xs text-text-tertiary mt-2 flex gap-1 w-fit items-center justify-center">
-                    <div class="i-carbon:thumbs-up-filled mt--0.5" />
-                    {{ comment.like }}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </TransitionGroup>
-
-          <!-- 分页控件 -->
-          <div v-if="totalPages > 1" class="mt-6 flex gap-2 items-center justify-center">
-            <Button
-              variant="secondary"
-              :disabled="!hasPrevPage"
-              @click="prevPage"
-            >
-              上一页
-            </Button>
-
-            <div class="flex gap-1">
-              <!-- 第一页 -->
-              <button
-                v-if="currentPage > 3"
-                class="text-sm px-3 py-1 rounded transition-colors"
-                :class="currentPage === 1 ? 'bg-primary text-white' : 'bg-bg-secondary text-text-primary hover:bg-bg-tertiary'"
-                @click="goToPage(1)"
-              >
-                1
-              </button>
-              <span v-if="currentPage > 4" class="text-text-tertiary px-2 py-1">...</span>
-
-              <!-- 当前页附近的页码 -->
-              <button
-                v-for="page in [currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2].filter(p => p >= 1 && p <= totalPages)"
-                :key="page"
-                class="text-sm px-3 py-1 rounded transition-colors"
-                :class="page === currentPage ? 'bg-primary text-white' : 'bg-bg-secondary text-text-primary hover:bg-bg-tertiary'"
-                @click="goToPage(page)"
-              >
-                {{ page }}
-              </button>
-
-              <!-- 最后一页 -->
-              <span v-if="currentPage < totalPages - 3" class="text-text-tertiary px-2 py-1">...</span>
-              <button
-                v-if="currentPage < totalPages - 2"
-                class="text-sm px-3 py-1 rounded transition-colors"
-                :class="currentPage === totalPages ? 'bg-primary text-white' : 'bg-bg-secondary text-text-primary hover:bg-bg-tertiary'"
-                @click="goToPage(totalPages)"
-              >
-                {{ totalPages }}
-              </button>
-            </div>
-
-            <Button
-              variant="secondary"
-              :disabled="!hasNextPage"
-              @click="nextPage"
-            >
-              下一页
-            </Button>
-
-            <span class="text-sm text-text-tertiary ml-4">
-              第 {{ currentPage }} / {{ totalPages }} 页
-            </span>
-          </div>
-        </div>
-      </div>
+      <CommentList
+        v-if="hasCommentFile"
+        :comments="paginatedComments"
+        :total-comments="totalComments"
+        :sort-type="sortType"
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        :has-next-page="hasNextPage"
+        :has-prev-page="hasPrevPage"
+        :loading="loadingComments"
+        :error="commentsError"
+        @change-sort-type="changeSortType"
+        @next-page="nextPage"
+        @prev-page="prevPage"
+        @go-to-page="goToPage"
+      />
     </div>
   </div>
 </template>
@@ -485,27 +255,5 @@ async function handleOpenFolder() {
 
 :deep(.plyr__menu__container .plyr__control[role='menuitemradio'][aria-checked='true']::before) {
   background: var(--color-accent-500);
-}
-
-/* 评论列表动画 */
-.comment-list-move,
-.comment-list-enter-active,
-.comment-list-leave-active {
-  transition: all 0.3s ease;
-}
-
-.comment-list-enter-from {
-  opacity: 0;
-  transform: translateX(30px);
-}
-
-.comment-list-leave-to {
-  opacity: 0;
-  transform: translateX(-30px);
-}
-
-.comment-list-leave-active {
-  position: absolute;
-  width: 100%;
 }
 </style>

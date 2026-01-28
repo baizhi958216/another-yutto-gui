@@ -13,6 +13,7 @@ export interface VideoInfo {
     level?: number
     location?: string
   }
+  is_favorite?: boolean
   episodes?: Episode[]
   available_qualities?: QualityOption[]
   available_audio_qualities?: AudioQualityOption[]

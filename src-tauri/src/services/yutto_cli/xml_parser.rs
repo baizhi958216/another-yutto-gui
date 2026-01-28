@@ -144,6 +144,7 @@ pub async fn parse_xml(xml: &str, original_url: &str, series_name: &str, sessdat
         duration: 0, // XML 中没有 duration 信息
         description,
         owner,
+        is_favorite,
         episodes: None,
         available_qualities: None,
         available_audio_qualities: None,

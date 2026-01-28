@@ -10,6 +10,7 @@ pub struct VideoInfo {
     pub duration: i64,
     pub description: String,
     pub owner: Owner,
+    pub is_favorite: bool,
     pub episodes: Option<Vec<Episode>>,
     pub available_qualities: Option<Vec<QualityOption>>,
     pub available_audio_qualities: Option<Vec<AudioQualityOption>>,

@@ -25,9 +25,8 @@ const emit = defineEmits<{
   goToPage: [page: number]
 }>()
 
-function formatCommentTime(timestamp: number): string {
-  return formatRelativeTime(timestamp * 1000) // 转换为毫秒
-}
+// 将秒级时间戳转换为毫秒级时间戳
+const formatCommentTime = (timestamp: number) => formatRelativeTime(timestamp * 1000)
 </script>
 
 <template>

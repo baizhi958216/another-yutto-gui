@@ -6,8 +6,7 @@ import Button from '@/components/common/Button.vue'
 import Card from '@/components/common/Card.vue'
 import Input from '@/components/common/Input.vue'
 import { useHistoryStore } from '@/stores/history'
-import { formatFileSize, formatRelativeTime } from '@/utils/format'
-import { formatAudioQuality, formatVideoQuality } from '@/utils/quality'
+import { formatFileSize, formatRelativeTime, generateDownloadTags } from '@/utils/format'
 
 const historyStore = useHistoryStore()
 const router = useRouter()
@@ -15,31 +14,7 @@ const router = useRouter()
 const searchQuery = ref('')
 
 // 获取历史记录的标签
-function getHistoryTags(entry: any): string[] {
-  const tags: string[] = []
-
-  if (entry.videoOnly) {
-    tags.push('仅视频')
-  }
-  else if (entry.audioOnly) {
-    tags.push('仅音频')
-  }
-
-  // 添加质量信息
-  if (!entry.audioOnly) {
-    tags.push(formatVideoQuality(entry.videoQuality))
-  }
-  if (!entry.videoOnly) {
-    tags.push(formatAudioQuality(entry.audioQuality))
-  }
-
-  // 添加评论标签
-  if (entry.commentFilePath) {
-    tags.push('评论')
-  }
-
-  return tags
-}
+const getHistoryTags = (entry: any) => generateDownloadTags(entry)
 
 // Load history on mount
 onMounted(async () => {

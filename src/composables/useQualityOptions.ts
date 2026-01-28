@@ -1,5 +1,6 @@
 import type { AudioQualityOption, QualityOption } from '@/types'
-import { computed } from 'vue'
+import { computed, unref } from 'vue'
+import type { Ref } from 'vue'
 
 interface QualityOptionWithDisplay extends QualityOption {
   displayText: string
@@ -12,9 +13,11 @@ interface AudioQualityOptionWithDisplay extends AudioQualityOption {
 /**
  * Composable for managing quality options display
  */
+type MaybeRef<T> = T | Ref<T>
+
 export function useQualityOptions(
-  availableQualities?: QualityOption[],
-  availableAudioQualities?: AudioQualityOption[],
+  availableQualities: MaybeRef<QualityOption[] | undefined>,
+  availableAudioQualities: MaybeRef<AudioQualityOption[] | undefined>,
 ) {
   // Helper function to generate display text for video quality
   function getQualityDisplayText(quality: QualityOption): string {
@@ -68,8 +71,9 @@ export function useQualityOptions(
 
   // Compute available quality options from videoInfo or use defaults
   const qualityOptions = computed<QualityOptionWithDisplay[]>(() => {
-    if (availableQualities && availableQualities.length > 0) {
-      const options = availableQualities.map(q => ({
+    const qualities = unref(availableQualities)
+    if (qualities && qualities.length > 0) {
+      const options = qualities.map(q => ({
         ...q,
         displayText: getQualityDisplayText(q),
       }))
@@ -81,8 +85,9 @@ export function useQualityOptions(
 
   // Compute available audio quality options from videoInfo or use defaults
   const audioQualityOptions = computed<AudioQualityOptionWithDisplay[]>(() => {
-    if (availableAudioQualities && availableAudioQualities.length > 0) {
-      const options = availableAudioQualities.map(q => ({
+    const qualities = unref(availableAudioQualities)
+    if (qualities && qualities.length > 0) {
+      const options = qualities.map(q => ({
         ...q,
         displayText: getAudioQualityDisplayText(q),
       }))

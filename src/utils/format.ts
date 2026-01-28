@@ -1,3 +1,5 @@
+import { formatAudioQuality, formatVideoQuality } from './quality'
+
 /**
  * 格式化文件大小
  * @param bytes 字节数
@@ -80,4 +82,56 @@ export function formatRelativeTime(timestamp: number): string {
   if (days < 7)
     return isEnglish ? `${days} days ago` : `${days}天前`
   return formatDate(timestamp)
+}
+
+/**
+ * 生成下载配置标签
+ * @param config 下载配置对象
+ * @returns 标签数组
+ */
+export function generateDownloadTags(config: {
+  videoOnly?: boolean
+  audioOnly?: boolean
+  videoQuality?: number
+  audioQuality?: number
+  withDanmaku?: boolean
+  withSubtitle?: boolean
+  withCover?: boolean
+  withComments?: boolean
+  commentFilePath?: string
+}): string[] {
+  const tags: string[] = []
+
+  // 导入质量格式化函数
+
+  if (config.videoOnly) {
+    tags.push('仅视频')
+  }
+  else if (config.audioOnly) {
+    tags.push('仅音频')
+  }
+
+  // 添加质量信息
+  if (!config.audioOnly && config.videoQuality !== undefined) {
+    tags.push(formatVideoQuality(config.videoQuality))
+  }
+  if (!config.videoOnly && config.audioQuality !== undefined) {
+    tags.push(formatAudioQuality(config.audioQuality))
+  }
+
+  // 添加其他选项
+  if (config.withDanmaku) {
+    tags.push('弹幕')
+  }
+  if (config.withSubtitle) {
+    tags.push('字幕')
+  }
+  if (config.withCover) {
+    tags.push('封面')
+  }
+  if (config.withComments || config.commentFilePath) {
+    tags.push('评论')
+  }
+
+  return tags
 }

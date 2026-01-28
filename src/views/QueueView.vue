@@ -6,7 +6,7 @@ import Card from '@/components/common/Card.vue'
 import ProgressBar from '@/components/common/ProgressBar.vue'
 import { useDownload } from '@/composables/useDownload'
 import { useQueueStore } from '@/stores/queue'
-import { formatAudioQuality, formatVideoQuality } from '@/utils/quality'
+import { generateDownloadTags } from '@/utils/format'
 
 const queueStore = useQueueStore()
 const { pauseDownload, resumeDownload, cancelDownload } = useDownload()
@@ -42,40 +42,7 @@ function getStatusColor(status: string) {
 }
 
 // 获取下载参数标签
-function getDownloadTags(task: any): string[] {
-  const tags: string[] = []
-
-  if (task.config.videoOnly) {
-    tags.push('仅视频')
-  }
-  else if (task.config.audioOnly) {
-    tags.push('仅音频')
-  }
-
-  // 添加质量信息
-  if (!task.config.audioOnly) {
-    tags.push(formatVideoQuality(task.config.videoQuality))
-  }
-  if (!task.config.videoOnly) {
-    tags.push(formatAudioQuality(task.config.audioQuality))
-  }
-
-  // 添加其他选项
-  if (task.config.withDanmaku) {
-    tags.push('弹幕')
-  }
-  if (task.config.withSubtitle) {
-    tags.push('字幕')
-  }
-  if (task.config.withCover) {
-    tags.push('封面')
-  }
-  if (task.config.withComments) {
-    tags.push('评论')
-  }
-
-  return tags
-}
+const getDownloadTags = (task: any) => generateDownloadTags(task.config)
 </script>
 
 <template>

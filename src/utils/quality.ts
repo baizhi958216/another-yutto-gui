@@ -60,3 +60,28 @@ export function formatQuality(
   }
   return `${formatVideoQuality(videoQuality)} + ${formatAudioQuality(audioQuality)}`
 }
+
+/**
+ * 获取质量选项的显示文本（包含可用性提示）
+ * @param quality 质量选项对象
+ * @returns 带有可用性提示的显示文本
+ */
+export function getQualityDisplayText(quality: {
+  description: string
+  available?: boolean
+  vip_only?: boolean
+  login_required?: boolean
+}): string {
+  // 如果 available 未定义，默认为 true（可用）
+  const isAvailable = quality.available !== false
+  if (isAvailable) {
+    return quality.description
+  }
+  if (quality.vip_only) {
+    return `${quality.description} (需要大会员)`
+  }
+  if (quality.login_required) {
+    return `${quality.description} (需要登录)`
+  }
+  return quality.description
+}

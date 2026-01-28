@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import type { AudioQualityOption, Episode, QualityOption } from '@/types/video'
 import { computed } from 'vue'
+import { getQualityDisplayText } from '@/utils/quality'
 import Select from './Select.vue'
 
 const props = defineProps<{
@@ -44,47 +45,21 @@ function handleSelectAll() {
   }
 }
 
-function getQualityDisplayText(quality: QualityOption): string {
-  if (quality.available) {
-    return quality.description
-  }
-  if (quality.vip_only) {
-    return `${quality.description} (需要大会员)`
-  }
-  if (quality.login_required) {
-    return `${quality.description} (需要登录)`
-  }
-  return quality.description
-}
-
-function getAudioQualityDisplayText(quality: AudioQualityOption): string {
-  if (quality.available) {
-    return quality.description
-  }
-  if (quality.vip_only) {
-    return `${quality.description} (需要大会员)`
-  }
-  if (quality.login_required) {
-    return `${quality.description} (需要登录)`
-  }
-  return quality.description
-}
-
 function getVideoQualityOptions(episode: Episode): { label: string, value: number, disabled: boolean }[] {
   const qualities = episode.available_qualities || props.globalVideoQualities || []
   return qualities.map(q => ({
     label: getQualityDisplayText(q),
     value: q.quality,
-    disabled: !q.available,
+    disabled: q.available === false,
   }))
 }
 
 function getAudioQualityOptions(episode: Episode): { label: string, value: number, disabled: boolean }[] {
   const qualities = episode.available_audio_qualities || props.globalAudioQualities || []
   return qualities.map(q => ({
-    label: getAudioQualityDisplayText(q),
+    label: getQualityDisplayText(q),
     value: q.quality,
-    disabled: !q.available,
+    disabled: q.available === false,
   }))
 }
 

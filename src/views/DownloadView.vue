@@ -16,8 +16,8 @@ const { submitDownload } = useDownload()
 
 // Use quality options composable
 const { qualityOptions, audioQualityOptions } = useQualityOptions(
-  downloadStore.videoInfo?.available_qualities,
-  downloadStore.videoInfo?.available_audio_qualities,
+  computed(() => downloadStore.videoInfo?.available_qualities),
+  computed(() => downloadStore.videoInfo?.available_audio_qualities),
 )
 
 // Sync URL with store to persist across route changes
@@ -36,9 +36,7 @@ const showEpisodeSelector = computed(() => {
 
 // 判断是否为收藏夹（有多个剧集且有用户详细信息）
 const isFavorite = computed(() => {
-  return downloadStore.videoInfo?.episodes
-    && downloadStore.videoInfo.episodes.length > 1
-    && downloadStore.videoInfo.owner.sign !== undefined
+  return downloadStore.videoInfo?.is_favorite === true
 })
 
 // Handle video-only download
@@ -223,7 +221,7 @@ onMounted(() => {
       </div>
 
       <!-- 下载配置 -->
-      <div v-if="downloadStore.currentConfig" class="space-y-3">
+      <div v-if="downloadStore.currentConfig" class="py-4 space-y-3">
         <!-- 只在非多剧集情况下显示全局质量选择 -->
         <div v-if="!showEpisodeSelector">
           <div>

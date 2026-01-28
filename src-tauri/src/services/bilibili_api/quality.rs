@@ -144,6 +144,21 @@ pub async fn fetch_video_qualities(bvid: &str, aid: i64, cid: i64, sessdata: Opt
         audio_qualities
     };
 
+    let audio_qualities = audio_qualities
+        .into_iter()
+        .map(|mut option| {
+            let available = if option.vip_only {
+                is_vip
+            } else if option.login_required {
+                is_logged_in
+            } else {
+                true
+            };
+            option.available = available;
+            option
+        })
+        .collect();
+
     Ok((qualities, audio_qualities))
 }
 
@@ -197,6 +212,6 @@ pub fn get_default_audio_quality_options() -> Vec<AudioQualityOption> {
         AudioQualityOption { quality: 30250, description: "杜比全景声".to_string(), available: false, vip_only: true, login_required: false },
         AudioQualityOption { quality: 30280, description: "320kbps".to_string(), available: false, vip_only: false, login_required: true },
         AudioQualityOption { quality: 30232, description: "132kbps".to_string(), available: false, vip_only: false, login_required: true },
-        AudioQualityOption { quality: 30216, description: "64kbps".to_string(), available: false, vip_only: false, login_required: true },
+        AudioQualityOption { quality: 30216, description: "64kbps".to_string(), available: false, vip_only: false, login_required: false },
     ]
 }

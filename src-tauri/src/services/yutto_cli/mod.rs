@@ -161,9 +161,9 @@ impl YuttoCli {
                     if idx == 0 {
                         // 输出 XML 内容的前 500 个字符用于调试
                         let preview = if xml_content.len() > 500 {
-                            &xml_content[..500]
+                            xml_content.chars().take(500).collect::<String>()
                         } else {
-                            &xml_content
+                            xml_content.clone()
                         };
                         eprintln!("[yutto_cli] XML 内容预览:\n{}", preview);
 
@@ -260,6 +260,74 @@ impl YuttoCli {
             }
         } else {
             eprintln!("[yutto_cli] 只有 1 个剧集，不添加剧集列表");
+
+            // 判断是否是番剧：没有 bvid 且 aid 为 0
+            let is_bangumi = video_info.bvid.is_empty() && video_info.aid == 0;
+
+            if is_bangumi {
+                // 番剧：使用番剧 API 获取质量选项
+                if let Some(first_episode) = episodes.first() {
+                    eprintln!("[yutto_cli] 检测到番剧，尝试获取第一个剧集的质量选项，ep_id: {}", first_episode.id);
+
+                    // 优先从 URL 提取 ep_id（适配单集番剧链接）
+                    let ep_id_from_url = episode_handler::extract_episode_id(url, first_episode.id);
+                    if ep_id_from_url != first_episode.id {
+                        eprintln!("[yutto_cli] 从 URL 提取到 ep_id: {}", ep_id_from_url);
+                    }
+
+                    // 如果 ep_id 看起来不对（太小），尝试从 URL 中提取 ss_id 并获取剧集列表
+                    let ep_id_to_use = if ep_id_from_url < 100 {
+                        eprintln!("[yutto_cli] ep_id 看起来不正确 ({}), 尝试从 URL 获取 ss_id", ep_id_from_url);
+                        match quality_fetcher::get_first_episode_id_from_season(url).await {
+                            Ok(real_ep_id) => {
+                                eprintln!("[yutto_cli] 从番剧 API 获取到第一个剧集的 ep_id: {}", real_ep_id);
+                                real_ep_id
+                            }
+                            Err(e) => {
+                                eprintln!("[yutto_cli] 从番剧 API 获取 ep_id 失败: {}, 使用原始 ep_id", e);
+                                ep_id_from_url
+                            }
+                        }
+                    } else {
+                        ep_id_from_url
+                    };
+
+                    match quality_fetcher::fetch_bangumi_qualities(ep_id_to_use, sessdata, is_vip).await {
+                        Ok((qualities, audio_qualities)) => {
+                            eprintln!("[yutto_cli] 成功获取番剧质量选项");
+                            video_info.available_qualities = Some(qualities);
+                            video_info.available_audio_qualities = Some(audio_qualities);
+                        }
+                        Err(e) => {
+                            eprintln!("[yutto_cli] 获取番剧质量选项失败: {}", e);
+                        }
+                    }
+                }
+            } else {
+                // 普通视频（收藏夹等）：使用普通视频 API 获取质量选项
+                eprintln!("[yutto_cli] 检测到普通视频（BV/AV），使用普通视频 API 获取质量选项");
+                eprintln!("[yutto_cli] bvid: {}, aid: {}", video_info.bvid, video_info.aid);
+
+                // 获取第一个视频的 cid（需要调用 API）
+                match quality_fetcher::fetch_video_cid(&video_info.bvid, video_info.aid, sessdata).await {
+                    Ok(cid) => {
+                        eprintln!("[yutto_cli] 获取到 cid: {}", cid);
+                        match quality_fetcher::fetch_video_qualities(&video_info.bvid, video_info.aid, cid, sessdata, is_vip).await {
+                            Ok((qualities, audio_qualities)) => {
+                                eprintln!("[yutto_cli] 成功获取普通视频质量选项");
+                                video_info.available_qualities = Some(qualities);
+                                video_info.available_audio_qualities = Some(audio_qualities);
+                            }
+                            Err(e) => {
+                                eprintln!("[yutto_cli] 获取普通视频质量选项失败: {}", e);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("[yutto_cli] 获取 cid 失败: {}", e);
+                    }
+                }
+            }
         }
 
         // 清理临时目录

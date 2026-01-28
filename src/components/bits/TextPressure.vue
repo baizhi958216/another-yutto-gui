@@ -198,8 +198,6 @@ watch([() => props.scale, () => props.text], () => {
   setSize()
 })
 
-watch([() => props.width, () => props.weight, () => props.italic, () => props.alpha], () => {})
-
 const titleStyle = computed(() => ({
   fontFamily: props.fontFamily,
   fontSize: `${fontSize.value}px`,
@@ -210,19 +208,6 @@ const titleStyle = computed(() => ({
   fontWeight: 100,
   color: props.stroke ? undefined : props.textColor,
 }))
-
-onMounted(() => {
-  const styleElement = document.createElement('style')
-  styleElement.textContent = dynamicStyles.value
-  document.head.appendChild(styleElement)
-
-  styleElement.setAttribute('data-text-pressure', 'true')
-})
-
-onUnmounted(() => {
-  const styleElements = document.querySelectorAll('style[data-text-pressure="true"]')
-  styleElements.forEach(el => el.remove())
-})
 </script>
 
 <template>

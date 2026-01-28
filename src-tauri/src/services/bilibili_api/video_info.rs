@@ -211,6 +211,7 @@ async fn parse_api_response(data: &Value, sessdata: Option<&str>, is_vip: bool) 
         duration,
         description,
         owner,
+        is_favorite: false,
         episodes: None,
         available_qualities: Some(available_qualities),
         available_audio_qualities: Some(available_audio_qualities),
