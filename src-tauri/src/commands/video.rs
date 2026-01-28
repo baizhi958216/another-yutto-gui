@@ -14,22 +14,38 @@ pub async fn fetch_video_info(url: String, sessdata: Option<String>, is_vip: boo
         Err(e) => {
             // 如果HTML解析失败，回退到使用yutto CLI获取基本信息
             eprintln!("从HTML获取视频信息失败: {}, 回退到yutto CLI", e);
-            YuttoCli::fetch_video_info(&url, sessdata.as_deref()).await
+            YuttoCli::fetch_video_info(&url, sessdata.as_deref(), is_vip).await
         }
     }
 }
 
 #[tauri::command]
 pub fn validate_url(url: String) -> Result<bool, String> {
-    // 验证是否为有效的 B 站链接
+    // 验证是否为有效的 B 站链接或视频 ID
+    let url_lower = url.to_lowercase();
     let valid_patterns = [
+        // 投稿视频
         "bilibili.com/video/",
+        "bv",
+        "av",
+        // 番剧
         "bilibili.com/bangumi/",
+        "ep",
+        "ss",
+        "md",
+        // 课程
+        "bilibili.com/cheese/",
+        // 短链接
         "b23.tv/",
-        "BV",
+        // 收藏夹和空间
+        "space.bilibili.com/",
+        // 稍后再看
+        "watchlater",
+        // 列表
+        "bilibili.com/list/",
     ];
 
-    Ok(valid_patterns.iter().any(|pattern| url.contains(pattern)))
+    Ok(valid_patterns.iter().any(|pattern| url_lower.contains(pattern)))
 }
 
 #[tauri::command]

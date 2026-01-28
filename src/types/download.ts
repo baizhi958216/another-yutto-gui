@@ -13,6 +13,7 @@ export interface DownloadConfig {
   audioOnly?: boolean
   episodes?: string
   sessdata?: string
+  episodeQualities?: Record<number, { videoQuality: number, audioQuality: number }>
 }
 
 export interface DownloadTask {

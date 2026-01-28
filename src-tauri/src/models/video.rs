@@ -39,6 +39,9 @@ pub struct Owner {
     pub uid: i64,
     pub name: String,
     pub face: String,
+    pub sign: Option<String>,
+    pub level: Option<i32>,
+    pub location: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,4 +50,6 @@ pub struct Episode {
     pub title: String,
     pub duration: i64,
     pub index: i64,
+    pub available_qualities: Option<Vec<QualityOption>>,
+    pub available_audio_qualities: Option<Vec<AudioQualityOption>>,
 }

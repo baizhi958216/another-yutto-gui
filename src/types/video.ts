@@ -9,6 +9,9 @@ export interface VideoInfo {
     uid: number
     name: string
     face: string
+    sign?: string
+    level?: number
+    location?: string
   }
   episodes?: Episode[]
   available_qualities?: QualityOption[]
@@ -37,4 +40,6 @@ export interface Episode {
   title: string
   duration: number
   index: number
+  available_qualities?: QualityOption[]
+  available_audio_qualities?: AudioQualityOption[]
 }

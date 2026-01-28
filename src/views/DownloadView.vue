@@ -3,14 +3,22 @@ import { Search } from 'lucide-vue-next'
 import { computed, onMounted, ref, watch } from 'vue'
 import TextPressure from '@/components/bits/TextPressure.vue'
 import Button from '@/components/common/Button.vue'
+import EpisodeSelector from '@/components/common/EpisodeSelector.vue'
 import Input from '@/components/common/Input.vue'
 import Select from '@/components/common/Select.vue'
 import Tooltip from '@/components/common/Tooltip.vue'
 import { useDownload } from '@/composables/useDownload'
+import { useQualityOptions } from '@/composables/useQualityOptions'
 import { useDownloadStore } from '@/stores/download'
 
 const downloadStore = useDownloadStore()
 const { submitDownload } = useDownload()
+
+// Use quality options composable
+const { qualityOptions, audioQualityOptions } = useQualityOptions(
+  downloadStore.videoInfo?.available_qualities,
+  downloadStore.videoInfo?.available_audio_qualities,
+)
 
 // Sync URL with store to persist across route changes
 const url = ref(downloadStore.currentUrl)
@@ -20,77 +28,18 @@ watch(() => downloadStore.currentUrl, (newUrl) => {
   url.value = newUrl
 })
 
-// Compute available quality options from videoInfo or use defaults
-const qualityOptions = computed(() => {
-  if (downloadStore.videoInfo?.available_qualities && downloadStore.videoInfo.available_qualities.length > 0) {
-    const options = downloadStore.videoInfo.available_qualities.map(q => ({
-      ...q,
-      displayText: getQualityDisplayText(q),
-    }))
-    console.log('[DownloadView] Video quality options:', options)
-    return options
-  }
-  // Default quality options if not available from backend
-  return [
-    { quality: 127, description: '8K 超高清', available: false, vip_only: true, login_required: false, displayText: '8K 超高清 (需要大会员)' },
-    { quality: 126, description: '杜比视界', available: false, vip_only: true, login_required: false, displayText: '杜比视界 (需要大会员)' },
-    { quality: 125, description: 'HDR 真彩', available: false, vip_only: true, login_required: false, displayText: 'HDR 真彩 (需要大会员)' },
-    { quality: 120, description: '4K 超清', available: false, vip_only: true, login_required: false, displayText: '4K 超清 (需要大会员)' },
-    { quality: 116, description: '1080P 60帧', available: false, vip_only: true, login_required: false, displayText: '1080P 60帧 (需要大会员)' },
-    { quality: 112, description: '1080P 高码率', available: false, vip_only: true, login_required: false, displayText: '1080P 高码率 (需要大会员)' },
-    { quality: 80, description: '1080P 高清', available: false, vip_only: false, login_required: true, displayText: '1080P 高清 (需要登录)' },
-    { quality: 64, description: '720P 高清', available: false, vip_only: false, login_required: true, displayText: '720P 高清 (需要登录)' },
-  ]
+// 是否显示剧集选择器
+const showEpisodeSelector = computed(() => {
+  return downloadStore.videoInfo?.episodes
+    && downloadStore.videoInfo.episodes.length > 1
 })
 
-// Compute available audio quality options from videoInfo or use defaults
-const audioQualityOptions = computed(() => {
-  if (downloadStore.videoInfo?.available_audio_qualities && downloadStore.videoInfo.available_audio_qualities.length > 0) {
-    const options = downloadStore.videoInfo.available_audio_qualities.map(q => ({
-      ...q,
-      displayText: getAudioQualityDisplayText(q),
-    }))
-    console.log('[DownloadView] Audio quality options:', options)
-    return options
-  }
-  // Default audio quality options if not available from backend
-  return [
-    { quality: 30251, description: 'Hi-Res无损', available: false, vip_only: true, login_required: false, displayText: 'Hi-Res无损 (需要大会员)' },
-    { quality: 30255, description: '杜比音效', available: false, vip_only: true, login_required: false, displayText: '杜比音效 (需要大会员)' },
-    { quality: 30250, description: '杜比全景声', available: false, vip_only: true, login_required: false, displayText: '杜比全景声 (需要大会员)' },
-    { quality: 30280, description: '320kbps', available: false, vip_only: false, login_required: true, displayText: '320kbps (需要登录)' },
-    { quality: 30232, description: '132kbps', available: false, vip_only: false, login_required: true, displayText: '132kbps (需要登录)' },
-    { quality: 30216, description: '64kbps', available: false, vip_only: false, login_required: true, displayText: '64kbps (需要登录)' },
-  ]
+// 判断是否为收藏夹（有多个剧集且有用户详细信息）
+const isFavorite = computed(() => {
+  return downloadStore.videoInfo?.episodes
+    && downloadStore.videoInfo.episodes.length > 1
+    && downloadStore.videoInfo.owner.sign !== undefined
 })
-
-// Helper function to generate display text for video quality
-function getQualityDisplayText(quality: any): string {
-  if (quality.available) {
-    return quality.description
-  }
-  if (quality.vip_only) {
-    return `${quality.description} (需要大会员)`
-  }
-  if (quality.login_required) {
-    return `${quality.description} (需要登录)`
-  }
-  return quality.description
-}
-
-// Helper function to generate display text for audio quality
-function getAudioQualityDisplayText(quality: any): string {
-  if (quality.available) {
-    return quality.description
-  }
-  if (quality.vip_only) {
-    return `${quality.description} (需要大会员)`
-  }
-  if (quality.login_required) {
-    return `${quality.description} (需要登录)`
-  }
-  return quality.description
-}
 
 // Handle video-only download
 async function handleVideoOnlyDownload() {
@@ -157,6 +106,12 @@ async function handleFetchInfo() {
 }
 
 async function handleSubmit() {
+  // 验证剧集选择
+  if (showEpisodeSelector.value && downloadStore.selectedEpisodes.size === 0) {
+    downloadStore.error = '请至少选择一个剧集'
+    return
+  }
+
   await submitDownload()
   // Keep the URL and video info visible after adding to queue
 }
@@ -193,7 +148,7 @@ onMounted(() => {
           <div class="flex-1 relative">
             <Input
               v-model="url"
-              placeholder="请输入 B 站视频链接 (BV号/番剧)"
+              placeholder="请输入 B 站链接 (视频/番剧/课程/收藏夹等，支持 BV/AV/EP/SS/MD 号)"
               class="pl-10 flex-1"
               @keyup.enter="handleFetchInfo"
             />
@@ -214,7 +169,36 @@ onMounted(() => {
 
       <!-- 视频信息预览 -->
       <div v-if="downloadStore.videoInfo" class="p-4 border border-border-primary rounded bg-bg-secondary shadow-sm transition-all hover:shadow-lg">
-        <div class="flex gap-4">
+        <!-- 收藏夹用户信息展示 -->
+        <div v-if="isFavorite" class="flex gap-4">
+          <img
+            :src="downloadStore.videoInfo.owner.face"
+            :alt="downloadStore.videoInfo.owner.name"
+            class="rounded-full h-20 w-20 object-cover"
+            referrerpolicy="no-referrer"
+          >
+          <div class="flex-1">
+            <h3 class="text-lg text-text-primary font-semibold mb-1">
+              {{ downloadStore.videoInfo.owner.name }}
+            </h3>
+            <p v-if="downloadStore.videoInfo.owner.sign" class="text-sm text-text-secondary mb-1">
+              {{ downloadStore.videoInfo.owner.sign }}
+            </p>
+            <div class="text-xs text-text-tertiary flex gap-3">
+              <span v-if="downloadStore.videoInfo.owner.level">
+                等级: Lv{{ downloadStore.videoInfo.owner.level }}
+              </span>
+              <span v-if="downloadStore.videoInfo.owner.location">
+                IP属地: {{ downloadStore.videoInfo.owner.location }}
+              </span>
+            </div>
+            <p class="text-sm text-text-secondary mt-2">
+              收藏夹: {{ downloadStore.videoInfo.title }}
+            </p>
+          </div>
+        </div>
+        <!-- 普通视频信息展示 -->
+        <div v-else class="flex gap-4">
           <img
             :src="downloadStore.videoInfo.thumbnail"
             :alt="downloadStore.videoInfo.title"
@@ -225,8 +209,14 @@ onMounted(() => {
             <h3 class="text-lg text-text-primary font-semibold mb-2">
               {{ downloadStore.videoInfo.title }}
             </h3>
-            <p class="text-sm text-text-secondary">
-              UP主: {{ downloadStore.videoInfo.owner.name }}
+            <!-- 如果有 bvid 或 aid，显示 UP 主；否则显示制作信息 -->
+            <p v-if="downloadStore.videoInfo.owner.name" class="text-sm text-text-secondary">
+              <template v-if="downloadStore.videoInfo.bvid || downloadStore.videoInfo.aid">
+                UP主: {{ downloadStore.videoInfo.owner.name }}
+              </template>
+              <template v-else>
+                {{ downloadStore.videoInfo.owner.name }}
+              </template>
             </p>
           </div>
         </div>
@@ -234,47 +224,66 @@ onMounted(() => {
 
       <!-- 下载配置 -->
       <div v-if="downloadStore.currentConfig" class="space-y-3">
-        <div>
-          <div class="mb-2 flex items-center justify-between">
-            <label class="text-sm text-text-primary font-medium">
-              视频质量
-            </label>
-            <Button
-              variant="secondary"
-              @click="handleVideoOnlyDownload"
-            >
-              仅视频
-            </Button>
+        <!-- 只在非多剧集情况下显示全局质量选择 -->
+        <div v-if="!showEpisodeSelector">
+          <div>
+            <div class="mb-2 flex items-center justify-between">
+              <label class="text-sm text-text-primary font-medium">
+                视频质量
+              </label>
+              <Button
+                variant="secondary"
+                @click="handleVideoOnlyDownload"
+              >
+                仅视频
+              </Button>
+            </div>
+            <Select
+              v-model="downloadStore.currentConfig.videoQuality"
+              :options="qualityOptions.map(option => ({
+                label: option.displayText,
+                value: option.quality,
+                disabled: !option.available,
+              }))"
+            />
           </div>
-          <Select
-            v-model="downloadStore.currentConfig.videoQuality"
-            :options="qualityOptions.map(option => ({
-              label: option.displayText,
-              value: option.quality,
-              disabled: !option.available,
-            }))"
-          />
+
+          <div>
+            <div class="mb-2 flex items-center justify-between">
+              <label class="text-sm text-text-primary font-medium">
+                音频质量
+              </label>
+              <Button
+                variant="secondary"
+                @click="handleAudioOnlyDownload"
+              >
+                仅音频
+              </Button>
+            </div>
+            <Select
+              v-model="downloadStore.currentConfig.audioQuality"
+              :options="audioQualityOptions.map(option => ({
+                label: option.displayText,
+                value: option.quality,
+                disabled: !option.available,
+              }))"
+            />
+          </div>
         </div>
 
-        <div>
-          <div class="mb-2 flex items-center justify-between">
-            <label class="text-sm text-text-primary font-medium">
-              音频质量
-            </label>
-            <Button
-              variant="secondary"
-              @click="handleAudioOnlyDownload"
-            >
-              仅音频
-            </Button>
-          </div>
-          <Select
-            v-model="downloadStore.currentConfig.audioQuality"
-            :options="audioQualityOptions.map(option => ({
-              label: option.displayText,
-              value: option.quality,
-              disabled: !option.available,
-            }))"
+        <!-- 剧集选择 -->
+        <div v-if="showEpisodeSelector">
+          <EpisodeSelector
+            :episodes="downloadStore.videoInfo!.episodes!"
+            :selected-indices="downloadStore.selectedEpisodes"
+            :global-video-qualities="downloadStore.videoInfo!.available_qualities"
+            :global-audio-qualities="downloadStore.videoInfo!.available_audio_qualities"
+            :episode-qualities="downloadStore.episodeQualities"
+            :is-favorite="isFavorite"
+            @toggle="downloadStore.toggleEpisode"
+            @select-all="downloadStore.selectAllEpisodes"
+            @deselect-all="downloadStore.deselectAllEpisodes"
+            @update-quality="downloadStore.updateEpisodeQuality"
           />
         </div>
 

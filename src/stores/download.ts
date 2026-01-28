@@ -13,6 +13,8 @@ export const useDownloadStore = defineStore('download', () => {
   const videoInfo = ref<VideoInfo | null>(null)
   const isLoading = ref<boolean>(false)
   const error = ref<string | null>(null)
+  const selectedEpisodes = ref<Set<number>>(new Set())
+  const episodeQualities = ref<Record<number, { videoQuality: number, audioQuality: number }>>({})
 
   // Actions
   async function fetchVideoInfo(url: string) {
@@ -37,6 +39,27 @@ export const useDownloadStore = defineStore('download', () => {
       console.log('[DownloadStore] Fetching video info with isVip:', authStore.isVip, 'sessdata present:', !!authStore.sessdata)
       videoInfo.value = await ApiService.fetchVideoInfo(normalizedUrl, authStore.isVip, authStore.sessdata || undefined)
       currentUrl.value = normalizedUrl
+
+      // 自动全选所有剧集
+      if (videoInfo.value?.episodes && videoInfo.value.episodes.length > 0) {
+        selectedEpisodes.value = new Set(
+          videoInfo.value.episodes.map(ep => ep.index),
+        )
+        console.log('[DownloadStore] Auto-selected all episodes:', selectedEpisodes.value)
+
+        // 初始化每个剧集的质量配置
+        const defaultVideoQuality = videoInfo.value.available_qualities?.find(q => q.available)?.quality || 80
+        const defaultAudioQuality = videoInfo.value.available_audio_qualities?.find(q => q.available)?.quality || 30280
+
+        episodeQualities.value = {}
+        videoInfo.value.episodes.forEach((ep) => {
+          episodeQualities.value[ep.index] = {
+            videoQuality: defaultVideoQuality,
+            audioQuality: defaultAudioQuality,
+          }
+        })
+        console.log('[DownloadStore] Initialized episode qualities:', episodeQualities.value)
+      }
     }
     catch (err) {
       error.value = err instanceof Error ? err.message : '获取视频信息失败'
@@ -115,6 +138,81 @@ export const useDownloadStore = defineStore('download', () => {
     videoInfo.value = null
     isLoading.value = false
     error.value = null
+    selectedEpisodes.value.clear()
+    episodeQualities.value = {}
+  }
+
+  function toggleEpisode(index: number) {
+    if (selectedEpisodes.value.has(index)) {
+      selectedEpisodes.value.delete(index)
+    }
+    else {
+      selectedEpisodes.value.add(index)
+    }
+    // 触发响应式更新
+    selectedEpisodes.value = new Set(selectedEpisodes.value)
+    updateEpisodesConfig()
+  }
+
+  function selectAllEpisodes() {
+    if (!videoInfo.value?.episodes)
+      return
+    selectedEpisodes.value = new Set(
+      videoInfo.value.episodes.map(ep => ep.index),
+    )
+    updateEpisodesConfig()
+  }
+
+  function deselectAllEpisodes() {
+    selectedEpisodes.value.clear()
+    updateEpisodesConfig()
+  }
+
+  function updateEpisodesConfig() {
+    if (!currentConfig.value)
+      return
+    const episodesStr = convertSelectedToYuttoFormat(selectedEpisodes.value)
+    currentConfig.value.episodes = episodesStr || undefined
+    currentConfig.value.episodeQualities = episodeQualities.value
+  }
+
+  function updateEpisodeQuality(index: number, videoQuality: number, audioQuality: number) {
+    episodeQualities.value[index] = { videoQuality, audioQuality }
+    updateEpisodesConfig()
+  }
+
+  function convertSelectedToYuttoFormat(selected: Set<number>): string {
+    if (selected.size === 0)
+      return ''
+
+    const sorted = Array.from(selected).sort((a, b) => a - b)
+    const ranges: string[] = []
+    let rangeStart = sorted[0]
+    let rangeEnd = sorted[0]
+
+    for (let i = 1; i <= sorted.length; i++) {
+      if (i < sorted.length && sorted[i] === rangeEnd + 1) {
+        rangeEnd = sorted[i]
+      }
+      else {
+        if (rangeStart === rangeEnd) {
+          ranges.push(String(rangeStart))
+        }
+        else if (rangeEnd === rangeStart + 1) {
+          ranges.push(String(rangeStart))
+          ranges.push(String(rangeEnd))
+        }
+        else {
+          ranges.push(`${rangeStart}~${rangeEnd}`)
+        }
+        if (i < sorted.length) {
+          rangeStart = sorted[i]
+          rangeEnd = sorted[i]
+        }
+      }
+    }
+
+    return ranges.join(',')
   }
 
   return {
@@ -124,11 +222,17 @@ export const useDownloadStore = defineStore('download', () => {
     videoInfo,
     isLoading,
     error,
+    selectedEpisodes,
+    episodeQualities,
     // Actions
     fetchVideoInfo,
     updateConfig,
     initConfig,
     clearError,
     reset,
+    toggleEpisode,
+    selectAllEpisodes,
+    deselectAllEpisodes,
+    updateEpisodeQuality,
   }
 })

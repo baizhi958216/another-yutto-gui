@@ -3,6 +3,7 @@ import { Folder, ShieldCheck, Zap } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import Button from '@/components/common/Button.vue'
 import Card from '@/components/common/Card.vue'
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import Input from '@/components/common/Input.vue'
 import Select from '@/components/common/Select.vue'
 import { useToast } from '@/composables/useToast'
@@ -15,6 +16,8 @@ const authStore = useAuthStore()
 const { showSuccess, showError } = useToast()
 
 const localSettings = ref({ ...settingsStore.settings })
+const showLogoutConfirm = ref(false)
+const showResetConfirm = ref(false)
 
 async function handleSelectDownloadPath() {
   const path = await selectFolder()
@@ -37,11 +40,14 @@ function handleSave() {
 }
 
 function handleReset() {
-  if (confirm('确定要重置所有设置吗？')) {
-    settingsStore.resetSettings()
-    localSettings.value = { ...settingsStore.settings }
-    showSuccess('设置已重置')
-  }
+  showResetConfirm.value = true
+}
+
+function confirmReset() {
+  settingsStore.resetSettings()
+  localSettings.value = { ...settingsStore.settings }
+  showSuccess('设置已重置')
+  showResetConfirm.value = false
 }
 
 async function handleLogin() {
@@ -54,14 +60,17 @@ async function handleLogin() {
 }
 
 async function handleLogout() {
-  if (confirm('确定要退出登录吗？')) {
-    try {
-      await authStore.logout()
-      showSuccess('已退出登录')
-    }
-    catch (error) {
-      showError('退出登录失败')
-    }
+  showLogoutConfirm.value = true
+}
+
+async function confirmLogout() {
+  try {
+    await authStore.logout()
+    showSuccess('已退出登录')
+    showLogoutConfirm.value = false
+  }
+  catch (error) {
+    showError('退出登录失败')
   }
 }
 
@@ -246,5 +255,28 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+
+    <!-- 确认对话框 -->
+    <ConfirmDialog
+      :show="showLogoutConfirm"
+      title="退出登录"
+      message="确定要退出登录吗？"
+      confirm-text="退出"
+      cancel-text="取消"
+      variant="warning"
+      @confirm="confirmLogout"
+      @cancel="showLogoutConfirm = false"
+    />
+
+    <ConfirmDialog
+      :show="showResetConfirm"
+      title="重置设置"
+      message="确定要重置所有设置吗？此操作不可撤销。"
+      confirm-text="重置"
+      cancel-text="取消"
+      variant="danger"
+      @confirm="confirmReset"
+      @cancel="showResetConfirm = false"
+    />
   </div>
 </template>

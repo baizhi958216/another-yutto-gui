@@ -1,6 +1,8 @@
 mod commands;
 mod services;
 mod models;
+mod utils;
+mod error;
 
 use commands::*;
 use services::download_manager::DownloadManager;
