@@ -8,6 +8,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AudioVisualizer from '@/components/common/AudioVisualizer.vue'
 import Button from '@/components/common/Button.vue'
 import CommentList from '@/components/common/CommentList.vue'
+import DanmakuPlayer from '@/components/common/DanmakuPlayer.vue'
 import { useComments } from '@/composables/useComments'
 import { useDownloadStore } from '@/stores/download'
 import { useHistoryStore } from '@/stores/history'
@@ -37,6 +38,9 @@ const isAudioOnly = computed(() => entry.value?.audioOnly ?? false)
 const videoElement = ref<HTMLVideoElement | null>(null)
 let player: Plyr | null = null
 
+// 弹幕显示状态
+const danmakuVisible = ref(true)
+
 // 使用评论组合式函数
 const {
   paginatedComments,
@@ -61,8 +65,55 @@ onMounted(async () => {
   // 只在非音频模式下初始化视频播放器
   if (videoElement.value && !entry.value?.audioOnly) {
     player = new Plyr(videoElement.value, {
-      controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'fullscreen'],
+      controls: [
+        'play-large',
+        'play',
+        'progress',
+        'current-time',
+        'mute',
+        'volume',
+        'settings',
+        'fullscreen',
+      ],
       settings: ['quality', 'speed'],
+    })
+
+    // 等待 Plyr 完全初始化后添加弹幕按钮
+    player!.on('ready', () => {
+      const controlsContainer = document.querySelector('.plyr__controls')
+      if (controlsContainer) {
+        // 创建弹幕切换按钮
+        const danmakuButton = document.createElement('button')
+        danmakuButton.type = 'button'
+        danmakuButton.className = 'plyr__controls__item plyr__control'
+        danmakuButton.setAttribute('data-plyr', 'danmaku')
+        danmakuButton.innerHTML = `
+          <svg class="icon--pressed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <svg class="icon--not-pressed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            <line x1="3" y1="3" x2="21" y2="21"></line>
+          </svg>
+          <span class="plyr__tooltip">弹幕</span>
+        `
+        danmakuButton.setAttribute('aria-pressed', danmakuVisible.value.toString())
+
+        // 添加点击事件
+        danmakuButton.addEventListener('click', () => {
+          danmakuVisible.value = !danmakuVisible.value
+          danmakuButton.setAttribute('aria-pressed', danmakuVisible.value.toString())
+        })
+
+        // 插入到全屏按钮之前
+        const fullscreenButton = controlsContainer.querySelector('[data-plyr="fullscreen"]')
+        if (fullscreenButton) {
+          controlsContainer.insertBefore(danmakuButton, fullscreenButton)
+        }
+        else {
+          controlsContainer.appendChild(danmakuButton)
+        }
+      }
     })
   }
 
@@ -136,6 +187,12 @@ async function handleOpenFolder() {
           ref="videoElement"
           :src="videoUrl"
           class="rounded-2xl w-full"
+        />
+        <DanmakuPlayer
+          v-if="entry"
+          :video-element="videoElement"
+          :video-file-path="entry.filePath"
+          :visible="danmakuVisible"
         />
       </div>
       <div class="flex gap-3">
@@ -255,5 +312,31 @@ async function handleOpenFolder() {
 
 :deep(.plyr__menu__container .plyr__control[role='menuitemradio'][aria-checked='true']::before) {
   background: var(--color-accent-500);
+}
+
+/* 弹幕按钮样式 */
+:deep([data-plyr='danmaku']) {
+  position: relative;
+}
+
+:deep([data-plyr='danmaku'] svg) {
+  width: 18px;
+  height: 18px;
+}
+
+:deep([data-plyr='danmaku'] .icon--pressed) {
+  display: none;
+}
+
+:deep([data-plyr='danmaku'] .icon--not-pressed) {
+  display: block;
+}
+
+:deep([data-plyr='danmaku'][aria-pressed='true'] .icon--pressed) {
+  display: block;
+}
+
+:deep([data-plyr='danmaku'][aria-pressed='true'] .icon--not-pressed) {
+  display: none;
 }
 </style>
