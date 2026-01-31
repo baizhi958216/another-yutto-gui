@@ -12,9 +12,6 @@ use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Initialize download manager
-    let download_manager = Arc::new(DownloadManager::new(3));
-
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
@@ -30,10 +27,13 @@ pub fn run() {
                 .expect("Failed to initialize storage");
             storage.init_db().expect("Failed to initialize database");
 
+            // Initialize download manager with app handle
+            let download_manager = Arc::new(DownloadManager::new(3, app.handle().clone()));
+
             app.manage(storage);
+            app.manage(download_manager);
             Ok(())
         })
-        .manage(download_manager)
         .invoke_handler(tauri::generate_handler![
             // Video commands
             video::fetch_video_info,

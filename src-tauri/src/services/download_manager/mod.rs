@@ -1,6 +1,7 @@
 mod output_parser;
 
 use crate::models::download::{DownloadConfig, DownloadTask, DownloadStatus, VideoInfo};
+use crate::utils::bundled_binaries;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -12,13 +13,15 @@ use std::process::Stdio;
 pub struct DownloadManager {
     pub active_downloads: Arc<Mutex<HashMap<String, DownloadTask>>>,
     pub max_concurrent: Arc<AtomicUsize>,
+    pub app_handle: tauri::AppHandle,
 }
 
 impl DownloadManager {
-    pub fn new(max_concurrent: usize) -> Self {
+    pub fn new(max_concurrent: usize, app_handle: tauri::AppHandle) -> Self {
         Self {
             active_downloads: Arc::new(Mutex::new(HashMap::new())),
             max_concurrent: Arc::new(AtomicUsize::new(max_concurrent.max(1))),
+            app_handle,
         }
     }
 
@@ -40,6 +43,7 @@ impl DownloadManager {
     async fn start_pending_if_available(
         downloads: Arc<Mutex<HashMap<String, DownloadTask>>>,
         max_concurrent: Arc<AtomicUsize>,
+        app_handle: tauri::AppHandle,
     ) {
         let mut tasks_to_start: Vec<(String, DownloadConfig)> = Vec::new();
         {
@@ -85,7 +89,7 @@ impl DownloadManager {
         }
 
         for (task_id, config) in tasks_to_start {
-            Self::spawn_download_task(task_id, config, downloads.clone(), max_concurrent.clone());
+            Self::spawn_download_task(task_id, config, downloads.clone(), max_concurrent.clone(), app_handle.clone());
         }
     }
 
@@ -94,9 +98,10 @@ impl DownloadManager {
         config: DownloadConfig,
         downloads: Arc<Mutex<HashMap<String, DownloadTask>>>,
         max_concurrent: Arc<AtomicUsize>,
+        app_handle: tauri::AppHandle,
     ) {
         tokio::spawn(async move {
-            let result = Self::run_yutto_download(task_id.clone(), config, downloads.clone()).await;
+            let result = Self::run_yutto_download(task_id.clone(), config, downloads.clone(), app_handle.clone()).await;
             if let Err(e) = result {
                 let mut downloads = downloads.lock().await;
                 if let Some(task) = downloads.get_mut(&task_id) {
@@ -104,7 +109,7 @@ impl DownloadManager {
                     task.error = Some(e);
                 }
             }
-            Self::start_pending_if_available(downloads, max_concurrent).await;
+            Self::start_pending_if_available(downloads, max_concurrent, app_handle).await;
         });
     }
 
@@ -147,7 +152,7 @@ impl DownloadManager {
         drop(downloads);
 
         if status == DownloadStatus::Downloading {
-            Self::spawn_download_task(task_id, config, self.active_downloads.clone(), self.max_concurrent.clone());
+            Self::spawn_download_task(task_id, config, self.active_downloads.clone(), self.max_concurrent.clone(), self.app_handle.clone());
         }
 
         Ok(())
@@ -157,28 +162,46 @@ impl DownloadManager {
         task_id: String,
         config: DownloadConfig,
         downloads: Arc<Mutex<HashMap<String, DownloadTask>>>,
+        app_handle: tauri::AppHandle,
     ) -> Result<(), String> {
-        // Build yutto command
-        let mut cmd = match config
-            .yutto_cli_path
-            .as_ref()
-            .map(|path| path.trim())
-            .filter(|path| !path.is_empty())
-        {
-            Some(path) => Command::new(path),
-            None => Command::new("yutto"),
-        };
+        // Build yutto command (使用打包的二进制文件或系统版本)
+        let yutto_path = bundled_binaries::get_yutto_command_path(
+            &app_handle,
+            config.yutto_cli_path.as_deref(),
+        );
+        let mut cmd = Command::new(&yutto_path);
         cmd.arg(&config.url)
             .arg("-q").arg(config.video_quality.to_string())
             .arg("-aq").arg(config.audio_quality.to_string())
             .arg("-d").arg(&config.download_path)
             .arg("--no-color")
+            .arg("--no-progress")  // 禁用进度条以避免 Windows 编码问题
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
         // Set UTF-8 environment variables to fix Windows encoding issues
         cmd.env("PYTHONIOENCODING", "utf-8");
         cmd.env("PYTHONUTF8", "1");
+
+        // Additional encoding fixes for Windows
+        #[cfg(windows)]
+        {
+            cmd.env("PYTHONLEGACYWINDOWSSTDIO", "0");
+            cmd.env("PYTHONLEGACYWINDOWSFSENCODING", "0");
+            // Force UTF-8 for stdout/stderr
+            cmd.env("PYTHONSTDOUTENCODING", "utf-8");
+            cmd.env("PYTHONSTDERRENCODING", "utf-8");
+            // Set console code page to UTF-8
+            cmd.env("CHCP", "65001");
+            // Disable colorama auto-init which may cause encoding issues
+            cmd.env("COLORAMA_AUTORESET", "0");
+            cmd.env("COLORAMA_STRIP", "1");
+        }
+
+        // 如果有打包的 ffmpeg，添加到 PATH
+        if let Some(path_with_ffmpeg) = bundled_binaries::get_path_with_ffmpeg(&app_handle) {
+            cmd.env("PATH", path_with_ffmpeg);
+        }
 
         // Add sessdata if provided
         if let Some(sessdata) = &config.sessdata {
@@ -345,7 +368,7 @@ impl DownloadManager {
         drop(downloads);
 
         // Start pending tasks
-        Self::start_pending_if_available(self.active_downloads.clone(), self.max_concurrent.clone()).await;
+        Self::start_pending_if_available(self.active_downloads.clone(), self.max_concurrent.clone(), self.app_handle.clone()).await;
         Ok(())
     }
 
@@ -419,6 +442,6 @@ impl DownloadManager {
     }
 
     pub async fn start_pending(&self) {
-        Self::start_pending_if_available(self.active_downloads.clone(), self.max_concurrent.clone()).await;
+        Self::start_pending_if_available(self.active_downloads.clone(), self.max_concurrent.clone(), self.app_handle.clone()).await;
     }
 }

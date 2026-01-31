@@ -26,3 +26,10 @@ dist-ssr
 
 docs
 yutto-main
+
+binaries/*
+build-scripts/*
+!binaries/.gitkeep
+!build-scripts/build-yutto.*
+!build-scripts/yutto_wrapper.py
+!build-scripts/yutto.spec

@@ -4,22 +4,60 @@
 
 ![yuttogui](./public/preview.png)
 
-## Wayland
+## Wayland 支持
 
-如果你在Wayland环境下，需要配置
+如果你在 Wayland 环境下，需要配置：
 
 ```bash
 export GDK_BACKEND=wayland
 export WEBKIT_DISABLE_COMPOSITING_MODE=1
 ```
 
+## 打包独立应用
+
+如果你想打包一个包含所有依赖的独立应用（用户无需安装 Python/yutto/ffmpeg）：
+
+### 快速开始
+
+1. **构建 yutto 可执行文件**
+   ```bash
+   cd build-scripts
+   # Windows
+   build-yutto.bat
+   # macOS/Linux
+   ./build-yutto.sh
+   ```
+
+2. **下载 ffmpeg 二进制文件**
+   - Windows: https://github.com/BtbN/FFmpeg-Builds/releases
+   - macOS: https://evermeet.cx/ffmpeg/
+   - Linux: https://johnvansickle.com/ffmpeg/
+
+3. **重命名并放置到 `binaries/` 目录**
+   ```
+   binaries/
+   ├── yutto-x86_64-pc-windows-msvc.exe
+   ├── ffmpeg-x86_64-pc-windows-msvc.exe
+   ├── yutto-x86_64-apple-darwin
+   ├── ffmpeg-x86_64-apple-darwin
+   ├── yutto-aarch64-apple-darwin
+   ├── ffmpeg-aarch64-apple-darwin
+   ├── yutto-x86_64-unknown-linux-gnu
+   └── ffmpeg-x86_64-unknown-linux-gnu
+   ```
+
+4. **构建应用**
+   ```bash
+   npm run tauri build
+   ```
+
 ## TODO
 -  [x] 识别不同视频链接
 -  [x] 下载队列暂停、取消
 -  [x] 视频预览字幕、弹幕显示
+-  [x] 内置 yutto 和 ffmpeg
 -  [ ] 下载进度优化
 -  [ ] 评论下载优化
--  [ ] 内置yutto ffmpeg (吗？)
 -  [ ] Web端 (吗？)
 
 ## 致谢

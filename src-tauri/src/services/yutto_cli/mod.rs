@@ -3,6 +3,7 @@ mod episode_handler;
 mod xml_parser;
 
 use crate::models::video::{VideoInfo, Episode};
+use crate::utils::bundled_binaries;
 use std::process::Command;
 
 #[cfg(windows)]
@@ -31,7 +32,12 @@ fn decode_output(bytes: &[u8]) -> String {
 }
 
 impl YuttoCli {
-    pub async fn fetch_video_info(url: &str, sessdata: Option<&str>, is_vip: bool) -> Result<VideoInfo, String> {
+    pub async fn fetch_video_info(
+        app_handle: &tauri::AppHandle,
+        url: &str,
+        sessdata: Option<&str>,
+        is_vip: bool
+    ) -> Result<VideoInfo, String> {
         // 创建临时目录用于存放元数据
         let temp_dir = std::env::temp_dir().join(format!("yutto_metadata_{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&temp_dir).map_err(|e| format!("创建临时目录失败: {}", e))?;
@@ -56,8 +62,9 @@ impl YuttoCli {
             || url_lower.contains("watchlater")
             || url_lower.contains("/list/");
 
-        // 构建 yutto 命令
-        let mut cmd = Command::new("yutto");
+        // 构建 yutto 命令（使用打包的二进制文件或系统版本）
+        let yutto_path = bundled_binaries::get_yutto_command_path(app_handle, None);
+        let mut cmd = Command::new(&yutto_path);
         cmd.arg(url)
             .arg("--metadata-only")
             .arg("--dir")
@@ -76,11 +83,28 @@ impl YuttoCli {
             cmd.arg("-c").arg(sessdata);
         }
 
-        // 在 Windows 上设置环境变量以强制使用 UTF-8 编码
+        // 设置环境变量以强制使用 UTF-8 编码
+        cmd.env("PYTHONIOENCODING", "utf-8");
+        cmd.env("PYTHONUTF8", "1");
+
+        // Additional encoding fixes for Windows
         #[cfg(windows)]
         {
-            cmd.env("PYTHONIOENCODING", "utf-8");
-            cmd.env("PYTHONUTF8", "1");
+            cmd.env("PYTHONLEGACYWINDOWSSTDIO", "0");
+            cmd.env("PYTHONLEGACYWINDOWSFSENCODING", "0");
+            // Force UTF-8 for stdout/stderr
+            cmd.env("PYTHONSTDOUTENCODING", "utf-8");
+            cmd.env("PYTHONSTDERRENCODING", "utf-8");
+            // Set console code page to UTF-8
+            cmd.env("CHCP", "65001");
+            // Disable colorama auto-init which may cause encoding issues
+            cmd.env("COLORAMA_AUTORESET", "0");
+            cmd.env("COLORAMA_STRIP", "1");
+        }
+
+        // 如果有打包的 ffmpeg，添加到 PATH
+        if let Some(path_with_ffmpeg) = bundled_binaries::get_path_with_ffmpeg(app_handle) {
+            cmd.env("PATH", path_with_ffmpeg);
         }
 
         // 执行命令

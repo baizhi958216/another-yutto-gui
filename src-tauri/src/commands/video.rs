@@ -2,9 +2,15 @@ use crate::services::yutto_cli::YuttoCli;
 use crate::services::bilibili_api::BilibiliApi;
 use crate::models::video::VideoInfo;
 use crate::models::comment::Comment;
+use tauri::State;
 
 #[tauri::command]
-pub async fn fetch_video_info(url: String, sessdata: Option<String>, is_vip: bool) -> Result<VideoInfo, String> {
+pub async fn fetch_video_info(
+    app_handle: tauri::AppHandle,
+    url: String,
+    sessdata: Option<String>,
+    is_vip: bool
+) -> Result<VideoInfo, String> {
     eprintln!("[fetch_video_info] Received parameters - url: {}, sessdata present: {}, is_vip: {}",
         url, sessdata.is_some(), is_vip);
 
@@ -14,7 +20,7 @@ pub async fn fetch_video_info(url: String, sessdata: Option<String>, is_vip: boo
         Err(e) => {
             // 如果HTML解析失败，回退到使用yutto CLI获取基本信息
             eprintln!("从HTML获取视频信息失败: {}, 回退到yutto CLI", e);
-            YuttoCli::fetch_video_info(&url, sessdata.as_deref(), is_vip).await
+            YuttoCli::fetch_video_info(&app_handle, &url, sessdata.as_deref(), is_vip).await
         }
     }
 }
