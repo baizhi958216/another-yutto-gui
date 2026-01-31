@@ -5,7 +5,6 @@ import { readTextFile } from '@tauri-apps/plugin-fs'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
 import { ArrowLeft, Download, FolderOpen, Subtitles } from 'lucide-vue-next'
 import * as PlyrNamespace from 'plyr'
-import subsrt from 'subsrt'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AudioVisualizer from '@/components/common/AudioVisualizer.vue'
@@ -67,6 +66,16 @@ const {
   loadLocalComments,
 } = useComments()
 
+function convertSrtToVtt(srtContent: string): string {
+  // 替换时间格式：00:00:00,000 -> 00:00:00.000
+  let vttContent = srtContent.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2')
+
+  // 添加 WEBVTT 头部
+  vttContent = `WEBVTT\n\n${vttContent}`
+
+  return vttContent
+}
+
 // 加载字幕文件
 async function loadSubtitle() {
   try {
@@ -87,7 +96,7 @@ async function loadSubtitle() {
     // 转换 SRT 为 WebVTT
     let vttContent = content
     if ((selected as string).endsWith('.srt')) {
-      vttContent = subsrt.convert(content, { format: 'vtt' })
+      vttContent = convertSrtToVtt(content)
     }
 
     // 创建 Blob URL
