@@ -132,6 +132,7 @@ async function loadSubtitle() {
 }
 
 const titleBar = useTitleBarStore()
+
 onMounted(async () => {
   // 只在非音频模式下初始化视频播放器
   if (videoElement.value && !entry.value?.audioOnly) {
@@ -149,6 +150,12 @@ onMounted(async () => {
       ],
       settings: ['captions', 'quality', 'speed'],
       captions: { active: true, language: 'zh', update: true },
+      fullscreen: {
+        enabled: true,
+        fallback: true,
+        iosNative: false,
+        container: '.video-container',
+      },
     })
 
     // 等待 Plyr 完全初始化后添加弹幕按钮
@@ -377,6 +384,23 @@ async function handleOpenFolder() {
   max-height: 80vh;
   width: 100%;
   height: auto;
+  object-fit: contain;
+}
+
+/* 全屏容器样式 */
+.video-container:fullscreen {
+  max-width: none;
+  margin: 0;
+  border-radius: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+}
+
+.video-container:fullscreen video {
+  max-height: 100vh;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
 }
 
