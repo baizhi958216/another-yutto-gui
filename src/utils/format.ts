@@ -87,6 +87,15 @@ export function formatRelativeTime(timestamp: number): string {
 /**
  * 生成下载配置标签
  * @param config 下载配置对象
+ * @param config.videoOnly 仅视频
+ * @param config.audioOnly 仅音频
+ * @param config.videoQuality  视频质量
+ * @param config.audioQuality  音频质量
+ * @param config.withDanmaku 是否有弹幕
+ * @param config.withSubtitle  是否有字幕
+ * @param config.withCover  是否有封面
+ * @param config.withComments  是否有评论
+ * @param config.commentFilePath 字幕文件地址
  * @returns 标签数组
  */
 export function generateDownloadTags(config: {

@@ -1,8 +1,11 @@
 <script lang="ts" setup>
 import { convertFileSrc } from '@tauri-apps/api/core'
+import { open } from '@tauri-apps/plugin-dialog'
+import { readTextFile } from '@tauri-apps/plugin-fs'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
-import { ArrowLeft, Download, FolderOpen } from 'lucide-vue-next'
+import { ArrowLeft, Download, FolderOpen, Subtitles } from 'lucide-vue-next'
 import * as PlyrNamespace from 'plyr'
+import subsrt from 'subsrt'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AudioVisualizer from '@/components/common/AudioVisualizer.vue'
@@ -41,6 +44,10 @@ let player: Plyr | null = null
 // 弹幕显示状态
 const danmakuVisible = ref(true)
 
+// 字幕相关状态
+const subtitleUrl = ref<string>('')
+const hasSubtitle = ref(false)
+
 // 使用评论组合式函数
 const {
   paginatedComments,
@@ -60,6 +67,70 @@ const {
   loadLocalComments,
 } = useComments()
 
+// 加载字幕文件
+async function loadSubtitle() {
+  try {
+    const selected = await open({
+      multiple: false,
+      filters: [{
+        name: '字幕文件',
+        extensions: ['srt', 'vtt'],
+      }],
+    })
+
+    if (!selected)
+      return
+
+    // 读取文件内容
+    const content = await readTextFile(selected as string)
+
+    // 转换 SRT 为 WebVTT
+    let vttContent = content
+    if ((selected as string).endsWith('.srt')) {
+      vttContent = subsrt.convert(content, { format: 'vtt' })
+    }
+
+    // 创建 Blob URL
+    const blob = new Blob([vttContent], { type: 'text/vtt' })
+    const url = URL.createObjectURL(blob)
+
+    // 清理旧的字幕 URL
+    if (subtitleUrl.value) {
+      URL.revokeObjectURL(subtitleUrl.value)
+    }
+
+    subtitleUrl.value = url
+    hasSubtitle.value = true
+
+    // 直接在 video 元素上添加 track，不刷新播放器
+    if (videoElement.value) {
+      // 移除旧的 track 元素
+      const oldTracks = videoElement.value.querySelectorAll('track')
+      oldTracks.forEach(track => track.remove())
+
+      // 添加新的 track 元素
+      const track = document.createElement('track')
+      track.kind = 'subtitles'
+      track.label = '本地字幕'
+      track.srclang = 'zh'
+      track.src = url
+      track.default = true
+      videoElement.value.appendChild(track)
+
+      // 等待 track 加载完成后启用字幕
+      track.addEventListener('load', () => {
+        if (videoElement.value?.textTracks.length) {
+          const textTrack = videoElement.value.textTracks[0]
+          textTrack.mode = 'showing'
+        }
+      })
+    }
+  }
+  catch (error) {
+    console.error('加载字幕失败:', error)
+  }
+}
+
 const titleBar = useTitleBarStore()
 onMounted(async () => {
   // 只在非音频模式下初始化视频播放器
@@ -72,10 +143,12 @@ onMounted(async () => {
         'current-time',
         'mute',
         'volume',
+        'captions',
         'settings',
         'fullscreen',
       ],
-      settings: ['quality', 'speed'],
+      settings: ['captions', 'quality', 'speed'],
+      captions: { active: true, language: 'zh', update: true },
     })
 
     // 等待 Plyr 完全初始化后添加弹幕按钮
@@ -135,6 +208,10 @@ onMounted(async () => {
 
 onUnmounted(() => {
   player?.destroy()
+  // 清理字幕 Blob URL
+  if (subtitleUrl.value) {
+    URL.revokeObjectURL(subtitleUrl.value)
+  }
   titleBar.setBranding({
     visible: false,
   })
@@ -206,6 +283,12 @@ async function handleOpenFolder() {
           <div class="flex items-center justify-center">
             <FolderOpen :size="16" class="mr-2" />
             打开文件夹
+          </div>
+        </Button>
+        <Button v-if="!isAudioOnly" variant="secondary" @click="loadSubtitle">
+          <div class="flex items-center justify-center">
+            <Subtitles :size="16" class="mr-2" />
+            {{ hasSubtitle ? '更换字幕' : '加载字幕' }}
           </div>
         </Button>
       </div>

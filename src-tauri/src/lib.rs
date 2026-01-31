@@ -19,6 +19,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_fs::init())
         .setup(|app| {
             // Initialize storage in setup hook where we have access to app handle
             let app_data_dir = app.path().app_data_dir()

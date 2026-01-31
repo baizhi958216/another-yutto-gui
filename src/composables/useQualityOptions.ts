@@ -1,6 +1,6 @@
+import type { Ref } from 'vue'
 import type { AudioQualityOption, QualityOption } from '@/types'
 import { computed, unref } from 'vue'
-import type { Ref } from 'vue'
 
 interface QualityOptionWithDisplay extends QualityOption {
   displayText: string

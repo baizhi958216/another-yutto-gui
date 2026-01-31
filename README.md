@@ -16,7 +16,7 @@ export WEBKIT_DISABLE_COMPOSITING_MODE=1
 ## TODO
 -  [x] 识别不同视频链接
 -  [x] 下载队列暂停、取消
--  [ ] 视频预览字幕、弹幕显示
+-  [x] 视频预览字幕、弹幕显示
 -  [ ] 下载进度优化
 -  [ ] 评论下载优化
 -  [ ] 内置yutto ffmpeg (吗？)

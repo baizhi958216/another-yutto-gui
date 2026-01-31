@@ -64,6 +64,10 @@ export function formatQuality(
 /**
  * 获取质量选项的显示文本（包含可用性提示）
  * @param quality 质量选项对象
+ * @param quality.description 质量描述
+ * @param quality.available 质量是否存在
+ * @param quality.vip_only 是否仅限vip
+ * @param quality.login_required 是否需要登录
  * @returns 带有可用性提示的显示文本
  */
 export function getQualityDisplayText(quality: {
