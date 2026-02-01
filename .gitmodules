@@ -1,0 +1,3 @@
+[submodule "yutto-main"]
+	path = yutto-main
+	url = https://github.com/baizhi958216/yutto.git

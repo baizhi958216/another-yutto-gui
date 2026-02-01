@@ -25,7 +25,6 @@ dist-ssr
 *.sw?
 
 docs
-yutto-main
 
 binaries/*
 build-scripts/*
