@@ -198,14 +198,11 @@ impl ProcessController {
     /// Check if a process exists and is running
     #[cfg(unix)]
     pub fn is_process_alive(pid: u32) -> bool {
-        use nix::sys::signal::{kill, Signal};
+        use nix::sys::signal::kill;
         use nix::unistd::Pid;
 
-        // Signal 0 doesn't actually send a signal, just checks if process exists
-        match Signal::from_c_int(0) {
-            Ok(sig) => kill(Pid::from_raw(pid as i32), sig).is_ok(),
-            Err(_) => false,
-        }
+        // Signal 0 (None) doesn't actually send a signal, just checks if process exists
+        kill(Pid::from_raw(pid as i32), None).is_ok()
     }
 
     /// Check if a process exists and is running (Windows)
