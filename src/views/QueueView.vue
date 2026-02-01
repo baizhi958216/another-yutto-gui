@@ -6,7 +6,7 @@ import Card from '@/components/common/Card.vue'
 import ProgressBar from '@/components/common/ProgressBar.vue'
 import { useDownload } from '@/composables/useDownload'
 import { useQueueStore } from '@/stores/queue'
-import { formatBytes, formatDownloadProgress, formatEta, formatSpeed, generateDownloadTags } from '@/utils/format'
+import { formatDownloadProgress, formatEta, formatSpeed, generateDownloadTags } from '@/utils/format'
 
 const queueStore = useQueueStore()
 const { pauseDownload, resumeDownload, cancelDownload } = useDownload()

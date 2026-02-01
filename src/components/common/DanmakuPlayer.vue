@@ -20,9 +20,6 @@ async function loadAssFile() {
     return
 
   try {
-    // 获取视频文件名（不含扩展名）
-    const videoFileName = props.videoFilePath.split(/[/\\]/).pop() || ''
-    const baseName = videoFileName.replace(/\.[^/.]+$/, '')
     // 构建 ASS 文件路径（与视频同目录）
     const assFilePath = props.videoFilePath.replace(/\.[^/.]+$/, '.ass')
 
