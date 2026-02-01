@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
+    "build:all": "node build-scripts/build-all.js",
     "preview": "vite preview",
     "tauri": "tauri",
     "lint": "eslint",
@@ -34,11 +35,14 @@
     "@unocss/preset-icons": "^66.5.12",
     "@unocss/preset-uno": "^66.5.12",
     "@vitejs/plugin-vue": "^5.2.1",
+    "decompress": "^4.2.1",
+    "decompress-tarxz": "^3.0.0",
     "eslint": "^9.39.2",
     "eslint-plugin-format": "^1.2.0",
     "sass-embedded": "^1.97.2",
     "typescript": "~5.6.2",
     "unocss": "^66.5.12",
+    "unzipper": "^0.12.3",
     "vite": "^6.0.3",
     "vue-tsc": "^2.1.10"
   }

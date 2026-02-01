@@ -32,3 +32,5 @@ build-scripts/*
 !build-scripts/build-yutto.*
 !build-scripts/yutto_wrapper.py
 !build-scripts/yutto.spec
+!build-scripts/download-ffmpeg.js
+!build-scripts/build-all.js

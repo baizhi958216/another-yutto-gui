@@ -4,7 +4,9 @@
       "Bash(npm install:*)",
       "Bash(cargo --version:*)",
       "Bash(rustc:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(curl:*)",
+      "Bash(node:*)"
     ]
   }
 }
