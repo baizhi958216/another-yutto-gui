@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(cargo --version:*)",
+      "Bash(rustc:*)",
+      "Bash(git add:*)"
     ]
   }
 }
