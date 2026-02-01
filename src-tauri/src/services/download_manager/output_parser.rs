@@ -1,15 +1,19 @@
 use crate::models::download::{DownloadTask, DownloadConfig};
+use crate::utils::format::{format_speed, format_eta};
+use crate::services::download_manager::json_parser::parse_progress_line;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::io::BufReader;
 use regex::Regex;
+use tauri::Emitter;
 
 /// Process output from yutto command and update task progress
 pub async fn process_output<R: tokio::io::AsyncRead + Unpin>(
     reader: BufReader<R>,
     task_id: String,
     downloads: Arc<Mutex<HashMap<String, DownloadTask>>>,
+    app_handle: tauri::AppHandle,
 ) {
     use tokio::io::AsyncReadExt;
 
@@ -38,12 +42,54 @@ pub async fn process_output<R: tokio::io::AsyncRead + Unpin>(
                             // Process the line
                             let line = line_buffer.trim();
 
+                            // Try JSON parsing first
+                            if let Some(parsed) = parse_progress_line(line) {
+                                // JSON parsing succeeded - update task with precise data
+                                let mut downloads_guard = downloads.lock().await;
+                                if let Some(task) = downloads_guard.get_mut(&task_id) {
+                                    task.progress = parsed.progress;
+                                    task.downloaded_bytes = parsed.downloaded_bytes;
+                                    task.total_bytes = parsed.total_bytes;
+                                    task.speed_bytes_per_sec = parsed.speed_bytes_per_sec;
+                                    task.eta_seconds = parsed.eta_seconds;
+                                    task.files_count = parsed.files_count;
+
+                                    // Update formatted strings for backward compatibility
+                                    task.speed = format_speed(parsed.speed_bytes_per_sec);
+                                    task.eta = parsed.eta_seconds
+                                        .map(|s| format_eta(s))
+                                        .unwrap_or_else(|| "--:--".to_string());
+                                    task.total_size = parsed.total_bytes;
+
+                                    // Clone task for event emission
+                                    let task_clone = task.clone();
+
+                                    // Release lock before emitting event
+                                    drop(downloads_guard);
+
+                                    // Emit real-time event to frontend
+                                    if let Err(e) = app_handle.emit("download-progress", &task_clone) {
+                                        eprintln!("[输出解析器] 发射事件失败: {}", e);
+                                    }
+
+                                    println!("[进度] {}% - {} - ETA: {}",
+                                        task_clone.progress.round(),
+                                        task_clone.speed,
+                                        task_clone.eta
+                                    );
+                                }
+
+                                line_buffer.clear();
+                                continue;
+                            }
+
+                            // Fallback to regex parsing for non-JSON output
                             // Only print non-progress lines to avoid spam
                             if !line.contains("MiB/") && !line.is_empty() {
                                 println!("[yutto] {}", line);
                             }
 
-                            // Try to parse progress information
+                            // Try to parse progress information using regex
                             let mut updated = false;
                             let mut progress_val = None;
                             let mut speed_val = None;

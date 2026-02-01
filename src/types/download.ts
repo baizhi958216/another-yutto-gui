@@ -29,7 +29,15 @@ export interface DownloadTask {
     title: string
     thumbnail: string
   }
-  totalSize: number
+  totalSize: number // DEPRECATED: use totalBytes
+
+  // NEW: Precise byte-level fields from JSON output
+  downloadedBytes: number
+  totalBytes: number
+  speedBytesPerSec: number
+  etaSeconds?: number
+  filesCount?: number
+
   savedFilePath?: string
   commentFilePath?: string
   commentDownloadProgress?: string

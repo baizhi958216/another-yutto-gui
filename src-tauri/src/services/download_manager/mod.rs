@@ -1,4 +1,5 @@
 mod output_parser;
+mod json_parser;
 
 use crate::models::download::{DownloadConfig, DownloadTask, DownloadStatus, VideoInfo};
 use crate::utils::bundled_binaries;
@@ -138,6 +139,11 @@ impl DownloadManager {
             warning: None,
             video_info: video_info.clone(),
             total_size: 0, // Will be updated from yutto output
+            downloaded_bytes: 0, // NEW: Will be updated from JSON output
+            total_bytes: 0, // NEW: Will be updated from JSON output
+            speed_bytes_per_sec: 0.0, // NEW: Will be updated from JSON output
+            eta_seconds: None, // NEW: Will be updated from JSON output
+            files_count: None, // NEW: Will be updated from JSON output
             saved_file_path: None, // Will be parsed from yutto output
             comment_file_path: None, // Will be set after comment download
             comment_download_progress: None, // Will be updated during comment download
@@ -175,7 +181,7 @@ impl DownloadManager {
             .arg("-aq").arg(config.audio_quality.to_string())
             .arg("-d").arg(&config.download_path)
             .arg("--no-color")
-            .arg("--no-progress")  // 禁用进度条以避免 Windows 编码问题
+            .arg("--json-output")  // 使用 JSON 输出模式获取精确进度
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
@@ -294,14 +300,16 @@ impl DownloadManager {
         // Spawn tasks to read output
         let downloads_clone = downloads.clone();
         let task_id_clone = task_id.clone();
+        let app_handle_clone = app_handle.clone();
         let stdout_handle = tokio::spawn(async move {
-            output_parser::process_output(stdout_reader, task_id_clone, downloads_clone).await;
+            output_parser::process_output(stdout_reader, task_id_clone, downloads_clone, app_handle_clone).await;
         });
 
         let downloads_clone = downloads.clone();
         let task_id_clone = task_id.clone();
+        let app_handle_clone = app_handle.clone();
         let stderr_handle = tokio::spawn(async move {
-            output_parser::process_output(stderr_reader, task_id_clone, downloads_clone).await;
+            output_parser::process_output(stderr_reader, task_id_clone, downloads_clone, app_handle_clone).await;
         });
 
         // Wait for the process to complete

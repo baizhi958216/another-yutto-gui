@@ -1,9 +1,26 @@
 import { formatAudioQuality, formatVideoQuality } from './quality'
 
 /**
- * 格式化文件大小
+ * 格式化字节数为可读格式 (使用二进制单位 KiB/MiB/GiB，与 Rust 后端保持一致)
+ * @param bytes 字节数
+ * @returns 格式化后的字符串，如 "75.70 MiB"
+ */
+export function formatBytes(bytes: number): string {
+  if (bytes === 0)
+    return '0 B'
+
+  const k = 1024
+  const sizes = ['B', 'KiB', 'MiB', 'GiB', 'TiB']
+  const i = Math.floor(Math.log(Math.abs(bytes)) / Math.log(k))
+
+  return `${(bytes / k ** i).toFixed(2)} ${sizes[i]}`
+}
+
+/**
+ * 格式化文件大小 (使用十进制单位 KB/MB/GB，保留用于兼容性)
  * @param bytes 字节数
  * @returns 格式化后的文件大小字符串
+ * @deprecated 建议使用 formatBytes 以与后端保持一致
  */
 export function formatFileSize(bytes: number): string {
   if (bytes === 0)
@@ -13,6 +30,41 @@ export function formatFileSize(bytes: number): string {
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return `${(bytes / k ** i).toFixed(2)} ${sizes[i]}`
 }
+
+/**
+ * 格式化下载速度
+ * @param bytesPerSec 每秒字节数
+ * @returns 格式化后的速度字符串，如 "5.20 MiB/s"
+ */
+export function formatSpeed(bytesPerSec: number): string {
+  if (!isFinite(bytesPerSec) || bytesPerSec < 0)
+    return '0 B/s'
+
+  return `${formatBytes(bytesPerSec)}/s`
+}
+
+/**
+ * 格式化 ETA (预计剩余时间)
+ * @param seconds 秒数
+ * @returns 格式化后的时间字符串，如 "02:35" 或 "1:23:45"
+ */
+export function formatEta(seconds: number): string {
+  if (!isFinite(seconds) || seconds < 0)
+    return '--:--'
+
+  return formatDuration(Math.round(seconds))
+}
+
+/**
+ * 格式化下载进度信息
+ * @param downloaded 已下载字节数
+ * @param total 总字节数
+ * @returns 格式化后的进度字符串，如 "75.70 MiB / 110.21 MiB"
+ */
+export function formatDownloadProgress(downloaded: number, total: number): string {
+  return `${formatBytes(downloaded)} / ${formatBytes(total)}`
+}
+
 
 function resolveLocale(): string {
   if (typeof document !== 'undefined') {

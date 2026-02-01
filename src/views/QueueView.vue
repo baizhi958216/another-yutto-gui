@@ -6,7 +6,7 @@ import Card from '@/components/common/Card.vue'
 import ProgressBar from '@/components/common/ProgressBar.vue'
 import { useDownload } from '@/composables/useDownload'
 import { useQueueStore } from '@/stores/queue'
-import { generateDownloadTags } from '@/utils/format'
+import { formatBytes, formatDownloadProgress, formatEta, formatSpeed, generateDownloadTags } from '@/utils/format'
 
 const queueStore = useQueueStore()
 const { pauseDownload, resumeDownload, cancelDownload } = useDownload()
@@ -43,6 +43,39 @@ function getStatusColor(status: string) {
 
 // 获取下载参数标签
 const getDownloadTags = (task: any) => generateDownloadTags(task.config)
+
+// 获取下载进度信息（已下载/总大小）
+function getDownloadInfo(task: any): string {
+  if (task.downloadedBytes && task.totalBytes) {
+    return formatDownloadProgress(task.downloadedBytes, task.totalBytes)
+  }
+  // 回退到旧的 totalSize 字段
+  if (task.totalSize > 0) {
+    const downloaded = (task.progress / 100) * task.totalSize
+    return formatDownloadProgress(downloaded, task.totalSize)
+  }
+  return ''
+}
+
+// 获取速度信息
+function getSpeedInfo(task: any): string {
+  // 优先使用新的精确速度字段
+  if (task.speedBytesPerSec !== undefined && task.speedBytesPerSec > 0) {
+    return formatSpeed(task.speedBytesPerSec)
+  }
+  // 回退到旧的字符串速度字段
+  return task.speed || '0 B/s'
+}
+
+// 获取 ETA 信息
+function getEtaInfo(task: any): string {
+  // 优先使用新的精确 ETA 字段
+  if (task.etaSeconds !== undefined && task.etaSeconds !== null) {
+    return formatEta(task.etaSeconds)
+  }
+  // 回退到旧的字符串 ETA 字段
+  return task.eta || '--:--'
+}
 </script>
 
 <template>
@@ -109,10 +142,16 @@ const getDownloadTags = (task: any) => generateDownloadTags(task.config)
               </span>
             </div>
 
-            <div class="text-sm text-text-secondary mb-2 flex gap-4 items-center">
+            <div class="text-xs text-text-secondary mb-2 flex flex-wrap gap-4 items-center">
               <span :class="getStatusColor(task.status)">
                 {{ getStatusText(task.status, task) }}
               </span>
+
+              <!-- 显示下载大小信息 -->
+              <span v-if="task.status === 'downloading' && !task.isDownloadingComments && getDownloadInfo(task)">
+                {{ getDownloadInfo(task) }}
+              </span>
+
               <!-- Show paused progress if available -->
               <span v-if="task.status === 'paused' && task.pausedAtProgress !== undefined">
                 {{ task.pausedAtProgress.toFixed(1) }}%
@@ -120,16 +159,17 @@ const getDownloadTags = (task: any) => generateDownloadTags(task.config)
               <span v-if="task.status === 'paused' && task.pausedAtSpeed">
                 {{ task.pausedAtSpeed }}
               </span>
+
               <!-- Show current progress for downloading tasks -->
               <span v-else-if="task.isDownloadingComments && task.commentDownloadProgress">
                 {{ task.commentDownloadProgress }}
               </span>
               <span v-else-if="task.status === 'downloading'">
-                {{ task.speed }}
+                {{ getSpeedInfo(task) }}
               </span>
-              <span v-if="task.status === 'downloading' && !task.isDownloadingComments">
-                剩余 {{ task.eta }}
-              </span>
+            </div>
+            <div v-if="task.status === 'downloading' && !task.isDownloadingComments" class="text-xs text-text-secondary mb-2">
+              剩余 {{ getEtaInfo(task) }}
             </div>
             <!-- 警告信息 -->
             <div v-if="task.warning" class="text-xs text-warning mb-2">

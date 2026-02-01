@@ -2,7 +2,6 @@ use crate::services::yutto_cli::YuttoCli;
 use crate::services::bilibili_api::BilibiliApi;
 use crate::models::video::VideoInfo;
 use crate::models::comment::Comment;
-use tauri::State;
 
 #[tauri::command]
 pub async fn fetch_video_info(

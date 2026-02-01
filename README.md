@@ -56,7 +56,7 @@ export WEBKIT_DISABLE_COMPOSITING_MODE=1
 -  [x] 下载队列暂停、取消
 -  [x] 视频预览字幕、弹幕显示
 -  [x] 内置 yutto 和 ffmpeg
--  [ ] 下载进度优化
+-  [x] 下载进度优化
 -  [ ] 评论下载优化
 -  [ ] Web端 (吗？)
 

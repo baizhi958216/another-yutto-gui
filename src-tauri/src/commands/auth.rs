@@ -1,4 +1,4 @@
-use tauri::{AppHandle, Manager, State, Emitter, Listener};
+use tauri::{AppHandle, Manager, State, Emitter};
 use tauri::webview::WebviewWindowBuilder;
 use crate::services::storage::Storage;
 use url::Url;

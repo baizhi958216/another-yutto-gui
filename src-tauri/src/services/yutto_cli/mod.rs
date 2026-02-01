@@ -2,7 +2,7 @@ mod quality_fetcher;
 mod episode_handler;
 mod xml_parser;
 
-use crate::models::video::{VideoInfo, Episode};
+use crate::models::video::VideoInfo;
 use crate::utils::bundled_binaries;
 use std::process::Command;
 

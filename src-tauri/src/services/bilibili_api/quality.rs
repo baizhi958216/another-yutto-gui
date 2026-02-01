@@ -6,7 +6,7 @@ use crate::utils::quality_mapper::{
 use serde_json::Value;
 
 /// 获取视频的可用清晰度选项和音频质量选项
-pub async fn fetch_video_qualities(bvid: &str, aid: i64, cid: i64, sessdata: Option<&str>, is_vip: bool) -> Result<(Vec<QualityOption>, Vec<AudioQualityOption>), String> {
+pub async fn fetch_video_qualities(bvid: &str, _aid: i64, cid: i64, sessdata: Option<&str>, is_vip: bool) -> Result<(Vec<QualityOption>, Vec<AudioQualityOption>), String> {
     // 构建播放信息 API URL
     let api_url = format!(
         "https://api.bilibili.com/x/player/playurl?bvid={}&cid={}&qn=127&fnval=4048&fourk=1",

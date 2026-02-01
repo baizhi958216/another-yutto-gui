@@ -44,7 +44,7 @@ pub async fn get_settings() -> Result<String, String> {
 }
 
 #[tauri::command]
-pub async fn save_settings(settings: String) -> Result<(), String> {
+pub async fn save_settings(_settings: String) -> Result<(), String> {
     // TODO: Implement save settings
     Ok(())
 }

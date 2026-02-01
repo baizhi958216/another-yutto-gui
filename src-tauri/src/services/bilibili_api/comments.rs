@@ -270,7 +270,7 @@ where
 
     let mut total_downloaded = 0;
     let mut pagination_str = r#"{"offset":""}"#.to_string();
-    let mut estimated_total: Option<usize> = None;
+    let estimated_total: Option<usize> = None;
 
     eprintln!("开始下载评论，aid: {}", aid);
 
