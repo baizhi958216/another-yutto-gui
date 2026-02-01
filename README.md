@@ -15,15 +15,11 @@ export WEBKIT_DISABLE_COMPOSITING_MODE=1
 
 ## 打包独立应用
 
-如果你想打包一个包含所有依赖的独立应用（用户无需安装 Python/yutto/ffmpeg）：
-
-### 快速开始
-
 1. **构建 yutto 可执行文件**
    ```bash
    cd build-scripts
    # Windows
-   build-yutto.bat
+   ./build-yutto.ps1
    # macOS/Linux
    ./build-yutto.sh
    ```
