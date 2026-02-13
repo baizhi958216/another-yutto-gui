@@ -1,10 +1,10 @@
 #!/usr/bin/env node
+/* eslint-disable node/prefer-global/process */
 
 import { chmodSync, createWriteStream, existsSync, mkdirSync, renameSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { fileURLToPath } from 'node:url'
-import { process } from 'node'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const BINARIES_DIR = join(__dirname, '..', 'binaries')

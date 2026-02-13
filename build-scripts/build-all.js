@@ -1,8 +1,8 @@
 #!/usr/bin/env node
+/* eslint-disable node/prefer-global/process */
 
 import { spawn } from 'node:child_process'
 import { platform } from 'node:process'
-import { process } from 'node'
 
 /**
  * Execute a command and return a promise
