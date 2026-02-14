@@ -37,7 +37,7 @@ export function formatFileSize(bytes: number): string {
  * @returns 格式化后的速度字符串，如 "5.20 MiB/s"
  */
 export function formatSpeed(bytesPerSec: number): string {
-  if (!isFinite(bytesPerSec) || bytesPerSec < 0)
+  if (!Number.isFinite(bytesPerSec) || bytesPerSec < 0)
     return '0 B/s'
 
   return `${formatBytes(bytesPerSec)}/s`
@@ -49,7 +49,7 @@ export function formatSpeed(bytesPerSec: number): string {
  * @returns 格式化后的时间字符串，如 "02:35" 或 "1:23:45"
  */
 export function formatEta(seconds: number): string {
-  if (!isFinite(seconds) || seconds < 0)
+  if (!Number.isFinite(seconds) || seconds < 0)
     return '--:--'
 
   return formatDuration(Math.round(seconds))
@@ -64,7 +64,6 @@ export function formatEta(seconds: number): string {
 export function formatDownloadProgress(downloaded: number, total: number): string {
   return `${formatBytes(downloaded)} / ${formatBytes(total)}`
 }
-
 
 function resolveLocale(): string {
   if (typeof document !== 'undefined') {

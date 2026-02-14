@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
-import { createWriteStream, existsSync, mkdirSync, chmodSync, rmSync, renameSync } from 'node:fs'
-import { join, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { chmodSync, createWriteStream, existsSync, mkdirSync, renameSync, rmSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { pipeline } from 'node:stream/promises'
+import { fileURLToPath } from 'node:url'
+import { process } from 'node'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const BINARIES_DIR = join(__dirname, '..', 'binaries')
@@ -71,7 +72,7 @@ async function extractTarXz(archivePath, targetFile, outputPath) {
 
     await decompress(archivePath, tempDir, {
       plugins: [decompressTarxz()],
-      filter: (file) => file.path === targetFile,
+      filter: file => file.path === targetFile,
     })
 
     // Move the extracted file to the target location
@@ -79,10 +80,12 @@ async function extractTarXz(archivePath, targetFile, outputPath) {
     if (existsSync(extractedPath)) {
       renameSync(extractedPath, outputPath)
       chmodSync(outputPath, 0o755)
-    } else {
+    }
+    else {
       throw new Error(`Expected file ${targetFile} not found in archive`)
     }
-  } finally {
+  }
+  finally {
     // Clean up temp directory
     if (existsSync(tempDir)) {
       rmSync(tempDir, { recursive: true, force: true })
@@ -110,7 +113,8 @@ async function extractZip(archivePath, targetFile, outputPath) {
               resolve()
             })
             .on('error', reject)
-        } else {
+        }
+        else {
           entry.autodrain()
         }
       })
@@ -154,7 +158,8 @@ async function downloadAndExtractFFmpeg(platform) {
     // Extract specific file
     if (platform.isTarXz) {
       await extractTarXz(tempArchive, platform.archivePath, outputPath)
-    } else if (platform.isZip) {
+    }
+    else if (platform.isZip) {
       await extractZip(tempArchive, platform.archivePath, outputPath)
     }
 
@@ -164,7 +169,8 @@ async function downloadAndExtractFFmpeg(platform) {
     if (existsSync(tempArchive)) {
       rmSync(tempArchive, { force: true })
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error(`✗ Failed to process ${platform.targetName}:`, error.message)
     throw error
   }
@@ -182,7 +188,8 @@ async function main() {
   for (const platform of PLATFORMS) {
     try {
       await downloadAndExtractFFmpeg(platform)
-    } catch (error) {
+    }
+    catch (error) {
       console.error(`Failed to process ${platform.targetName}, continuing...`)
     }
   }

@@ -2,6 +2,7 @@
 
 import { spawn } from 'node:child_process'
 import { platform } from 'node:process'
+import { process } from 'node'
 
 /**
  * Execute a command and return a promise
@@ -19,7 +20,8 @@ function execCommand(command, args, options = {}) {
     child.on('close', (code) => {
       if (code !== 0) {
         reject(new Error(`Command failed with exit code ${code}: ${command} ${args.join(' ')}`))
-      } else {
+      }
+      else {
         resolve()
       }
     })
@@ -49,7 +51,8 @@ async function buildWindows() {
     await execCommand('npm', ['run', 'tauri', 'build'])
 
     console.log('\n✓ Build completed successfully!')
-  } catch (error) {
+  }
+  catch (error) {
     console.error('\n✗ Build failed:', error.message)
     process.exit(1)
   }
@@ -74,7 +77,8 @@ async function buildUnix() {
     await execCommand('npm', ['run', 'tauri', 'build'])
 
     console.log('\n✓ Build completed successfully!')
-  } catch (error) {
+  }
+  catch (error) {
     console.error('\n✗ Build failed:', error.message)
     process.exit(1)
   }
@@ -85,7 +89,8 @@ async function main() {
 
   if (platform === 'win32') {
     await buildWindows()
-  } else {
+  }
+  else {
     await buildUnix()
   }
 }
