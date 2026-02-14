@@ -1,8 +1,8 @@
 mod commands;
-mod services;
-mod models;
-mod utils;
 mod error;
+mod models;
+mod services;
+mod utils;
 
 use commands::*;
 use services::download_manager::DownloadManager;
@@ -31,7 +31,9 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .setup(|app| {
             // Initialize storage in setup hook where we have access to app handle
-            let app_data_dir = app.path().app_data_dir()
+            let app_data_dir = app
+                .path()
+                .app_data_dir()
                 .expect("Failed to get app data directory");
             std::fs::create_dir_all(&app_data_dir).expect("Failed to create app data directory");
             let db_path = app_data_dir.join("yutto.db");
@@ -80,6 +82,7 @@ pub fn run() {
             system::get_file_size,
             system::find_newest_file_in_dir,
             system::read_csv_file,
+            system::fetch_image_data_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

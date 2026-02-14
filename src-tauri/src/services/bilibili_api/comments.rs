@@ -3,7 +3,11 @@ use crate::utils::http_client::create_bilibili_client;
 use std::path::Path;
 
 /// 获取视频评论（使用WBI签名API）
-pub async fn fetch_comments(aid: i64, pagination_str: &str, sessdata: Option<&str>) -> Result<(Vec<Comment>, Option<String>, bool), String> {
+pub async fn fetch_comments(
+    aid: i64,
+    pagination_str: &str,
+    sessdata: Option<&str>,
+) -> Result<(Vec<Comment>, Option<String>, bool), String> {
     // 构建参数
     let mut params = vec![
         ("oid".to_string(), aid.to_string()),
@@ -23,7 +27,10 @@ pub async fn fetch_comments(aid: i64, pagination_str: &str, sessdata: Option<&st
         .collect::<Vec<_>>()
         .join("&");
 
-    let api_url = format!("https://api.bilibili.com/x/v2/reply/wbi/main?{}", query_string);
+    let api_url = format!(
+        "https://api.bilibili.com/x/v2/reply/wbi/main?{}",
+        query_string
+    );
 
     eprintln!("调用评论 API: {}", api_url);
 
@@ -49,17 +56,22 @@ pub async fn fetch_comments(aid: i64, pagination_str: &str, sessdata: Option<&st
         .await
         .map_err(|e| format!("读取评论响应失败: {}", e))?;
 
-    let json: CommentResponse = serde_json::from_str(&json_text)
-        .map_err(|e| format!("解析评论JSON失败: {}", e))?;
+    let json: CommentResponse =
+        serde_json::from_str(&json_text).map_err(|e| format!("解析评论JSON失败: {}", e))?;
 
     if json.code != 0 {
-        return Err(format!("评论API返回错误: {} (code: {})", json.message, json.code));
+        return Err(format!(
+            "评论API返回错误: {} (code: {})",
+            json.message, json.code
+        ));
     }
 
     let data = json.data.ok_or("评论API响应中未找到data字段")?;
 
     // 获取下一页的offset
-    let next_offset = data.cursor.pagination_reply
+    let next_offset = data
+        .cursor
+        .pagination_reply
         .as_ref()
         .map(|p| p.next_offset.clone());
 
@@ -68,8 +80,9 @@ pub async fn fetch_comments(aid: i64, pagination_str: &str, sessdata: Option<&st
     let replies = data.replies.unwrap_or_default();
 
     // 转换为简化的Comment结构
-    let comments: Vec<Comment> = replies.iter().map(|reply| {
-        Comment {
+    let comments: Vec<Comment> = replies
+        .iter()
+        .map(|reply| Comment {
             rpid: reply.rpid,
             oid: reply.oid,
             mid: reply.mid,
@@ -83,8 +96,8 @@ pub async fn fetch_comments(aid: i64, pagination_str: &str, sessdata: Option<&st
             location: reply.reply_control.location.clone().unwrap_or_default(),
             parent: reply.parent,
             pictures: reply.content.pictures.clone().unwrap_or_default(),
-        }
-    }).collect();
+        })
+        .collect();
 
     eprintln!("成功获取 {} 条评论", comments.len());
 
@@ -107,15 +120,13 @@ pub async fn download_all_comments(
 
     // 创建保存目录
     let video_dir = Path::new(save_path).join(bvid);
-    create_dir_all(&video_dir)
-        .map_err(|e| format!("创建目录失败: {}", e))?;
+    create_dir_all(&video_dir).map_err(|e| format!("创建目录失败: {}", e))?;
 
     let csv_path = video_dir.join(format!("{}.csv", bvid));
     let avatars_dir = video_dir.join("avatars");
 
     if download_avatars {
-        create_dir_all(&avatars_dir)
-            .map_err(|e| format!("创建头像目录失败: {}", e))?;
+        create_dir_all(&avatars_dir).map_err(|e| format!("创建头像目录失败: {}", e))?;
     }
 
     // 检查CSV文件是否存在，如果不存在则创建并写入表头
@@ -126,11 +137,13 @@ pub async fn download_all_comments(
             .open(&csv_path)
             .map_err(|e| format!("打开CSV文件失败: {}", e))?
     } else {
-        let mut file = File::create(&csv_path)
-            .map_err(|e| format!("创建CSV文件失败: {}", e))?;
+        let mut file = File::create(&csv_path).map_err(|e| format!("创建CSV文件失败: {}", e))?;
         // 写入CSV表头
-        writeln!(file, "bvid,upname,sex,content,avatar,rpid,oid,mid,parent,ctime,like,level,location")
-            .map_err(|e| format!("写入CSV表头失败: {}", e))?;
+        writeln!(
+            file,
+            "bvid,upname,sex,content,avatar,rpid,oid,mid,parent,ctime,like,level,location"
+        )
+        .map_err(|e| format!("写入CSV表头失败: {}", e))?;
         file
     };
 
@@ -143,7 +156,8 @@ pub async fn download_all_comments(
         eprintln!("正在获取评论，pagination_str: {}", pagination_str);
 
         // 获取评论
-        let (comments, next_offset, is_end) = fetch_comments(aid, &pagination_str, sessdata).await?;
+        let (comments, next_offset, is_end) =
+            fetch_comments(aid, &pagination_str, sessdata).await?;
 
         if comments.is_empty() {
             eprintln!("没有更多评论，下载完成");
@@ -173,12 +187,14 @@ pub async fn download_all_comments(
                 location_escaped
             );
 
-            csv_file.write_all(line.as_bytes())
+            csv_file
+                .write_all(line.as_bytes())
                 .map_err(|e| format!("写入CSV失败: {}", e))?;
 
             // 下载头像
             if download_avatars && !comment.avatar.is_empty() {
-                let avatar_filename = format!("{}_{}.jpg", comment.mid, comment.uname.replace("/", "_"));
+                let avatar_filename =
+                    format!("{}_{}.jpg", comment.mid, comment.uname.replace("/", "_"));
                 let avatar_path = avatars_dir.join(&avatar_filename);
 
                 // 如果头像文件不存在，则下载
@@ -190,7 +206,8 @@ pub async fn download_all_comments(
             }
         }
 
-        csv_file.flush()
+        csv_file
+            .flush()
             .map_err(|e| format!("刷新CSV文件失败: {}", e))?;
 
         total_downloaded += comments.len();
@@ -217,7 +234,11 @@ pub async fn download_all_comments(
         }
     }
 
-    let result_msg = format!("评论下载完成！共下载 {} 条评论，保存至: {}", total_downloaded, csv_path.display());
+    let result_msg = format!(
+        "评论下载完成！共下载 {} 条评论，保存至: {}",
+        total_downloaded,
+        csv_path.display()
+    );
     eprintln!("{}", result_msg);
 
     Ok(result_msg)
@@ -230,13 +251,8 @@ pub async fn download_comments_to_file(
     delay_seconds: u64,
     sessdata: Option<&str>,
 ) -> Result<String, String> {
-    download_comments_to_file_with_progress(
-        aid,
-        csv_file_path,
-        delay_seconds,
-        sessdata,
-        |_, _| {},
-    ).await
+    download_comments_to_file_with_progress(aid, csv_file_path, delay_seconds, sessdata, |_, _| {})
+        .await
 }
 
 pub async fn download_comments_to_file_with_progress<F>(
@@ -258,15 +274,16 @@ where
 
     // 创建父目录
     if let Some(parent) = csv_path.parent() {
-        create_dir_all(parent)
-            .map_err(|e| format!("创建目录失败: {}", e))?;
+        create_dir_all(parent).map_err(|e| format!("创建目录失败: {}", e))?;
     }
 
     // 创建CSV文件并写入表头
-    let mut csv_file = File::create(&csv_path)
-        .map_err(|e| format!("创建CSV文件失败: {}", e))?;
-    writeln!(csv_file, "rpid,oid,mid,uname,sex,content,avatar,ctime,like,level,location,parent")
-        .map_err(|e| format!("写入CSV表头失败: {}", e))?;
+    let mut csv_file = File::create(&csv_path).map_err(|e| format!("创建CSV文件失败: {}", e))?;
+    writeln!(
+        csv_file,
+        "rpid,oid,mid,uname,sex,content,avatar,ctime,like,level,location,parent"
+    )
+    .map_err(|e| format!("写入CSV表头失败: {}", e))?;
 
     let mut total_downloaded = 0;
     let mut pagination_str = r#"{"offset":""}"#.to_string();
@@ -320,11 +337,13 @@ where
                 comment.parent
             );
 
-            csv_file.write_all(line.as_bytes())
+            csv_file
+                .write_all(line.as_bytes())
                 .map_err(|e| format!("写入CSV失败: {}", e))?;
         }
 
-        csv_file.flush()
+        csv_file
+            .flush()
             .map_err(|e| format!("刷新CSV文件失败: {}", e))?;
 
         total_downloaded += comments.len();
@@ -354,7 +373,11 @@ where
         }
     }
 
-    let result_msg = format!("评论下载完成！共下载 {} 条评论，保存至: {}", total_downloaded, csv_path.display());
+    let result_msg = format!(
+        "评论下载完成！共下载 {} 条评论，保存至: {}",
+        total_downloaded,
+        csv_path.display()
+    );
     eprintln!("{}", result_msg);
 
     Ok(result_msg)
@@ -379,8 +402,7 @@ async fn download_avatar(avatar_url: &str, save_path: &Path) -> Result<(), Strin
         .await
         .map_err(|e| format!("读取头像数据失败: {}", e))?;
 
-    std::fs::write(save_path, bytes)
-        .map_err(|e| format!("保存头像文件失败: {}", e))?;
+    std::fs::write(save_path, bytes).map_err(|e| format!("保存头像文件失败: {}", e))?;
 
     Ok(())
 }

@@ -1,12 +1,12 @@
-use crate::models::download::{DownloadTask, DownloadConfig};
-use crate::utils::format::{format_speed, format_eta};
+use crate::models::download::{DownloadConfig, DownloadTask};
 use crate::services::download_manager::json_parser::parse_progress_line;
+use crate::utils::format::{format_eta, format_speed};
+use regex::Regex;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::Mutex;
-use tokio::io::BufReader;
-use regex::Regex;
 use tauri::Emitter;
+use tokio::io::BufReader;
+use tokio::sync::Mutex;
 
 /// Process output from yutto command and update task progress
 pub async fn process_output<R: tokio::io::AsyncRead + Unpin>(
@@ -56,7 +56,8 @@ pub async fn process_output<R: tokio::io::AsyncRead + Unpin>(
 
                                     // Update formatted strings for backward compatibility
                                     task.speed = format_speed(parsed.speed_bytes_per_sec);
-                                    task.eta = parsed.eta_seconds
+                                    task.eta = parsed
+                                        .eta_seconds
                                         .map(|s| format_eta(s))
                                         .unwrap_or_else(|| "--:--".to_string());
                                     task.total_size = parsed.total_bytes;
@@ -68,11 +69,14 @@ pub async fn process_output<R: tokio::io::AsyncRead + Unpin>(
                                     drop(downloads_guard);
 
                                     // Emit real-time event to frontend
-                                    if let Err(e) = app_handle.emit("download-progress", &task_clone) {
+                                    if let Err(e) =
+                                        app_handle.emit("download-progress", &task_clone)
+                                    {
                                         eprintln!("[输出解析器] 发射事件失败: {}", e);
                                     }
 
-                                    println!("[进度] {}% - {} - ETA: {}",
+                                    println!(
+                                        "[进度] {}% - {} - ETA: {}",
                                         task_clone.progress.round(),
                                         task_clone.speed,
                                         task_clone.eta
@@ -98,10 +102,9 @@ pub async fn process_output<R: tokio::io::AsyncRead + Unpin>(
 
                             // Parse: "77.86 MiB/110.21 MiB"
                             if let Some(caps) = progress_re.captures(line) {
-                                if let (Ok(current), Ok(total)) = (
-                                    caps[1].parse::<f64>(),
-                                    caps[2].parse::<f64>(),
-                                ) {
+                                if let (Ok(current), Ok(total)) =
+                                    (caps[1].parse::<f64>(), caps[2].parse::<f64>())
+                                {
                                     if total > 0.0 {
                                         let percentage = (current / total) * 100.0;
                                         progress_val = Some(percentage);
@@ -157,7 +160,11 @@ pub async fn process_output<R: tokio::io::AsyncRead + Unpin>(
                                     }
                                     if let Some(size) = total_size_val {
                                         task.total_size = size;
-                                        println!("[文件大小] {} bytes ({:.2} MiB)", size, size as f64 / 1024.0 / 1024.0);
+                                        println!(
+                                            "[文件大小] {} bytes ({:.2} MiB)",
+                                            size,
+                                            size as f64 / 1024.0 / 1024.0
+                                        );
                                     }
                                     if let Some(path) = saved_path_val {
                                         task.saved_file_path = Some(path);
@@ -208,16 +215,15 @@ pub async fn download_comments_for_task(
     }
 
     // Get video info to extract aid and bvid
-    let video_info = BilibiliApi::fetch_video_info_from_html(
-        &config.url,
-        config.sessdata.as_deref(),
-        false,
-    ).await?;
+    let video_info =
+        BilibiliApi::fetch_video_info_from_html(&config.url, config.sessdata.as_deref(), false)
+            .await?;
 
     // Determine comment file path
     let saved_file_path = {
         let downloads_guard = downloads.lock().await;
-        downloads_guard.get(task_id)
+        downloads_guard
+            .get(task_id)
             .and_then(|task| task.saved_file_path.clone())
     };
 
@@ -261,7 +267,8 @@ pub async fn download_comments_for_task(
         3, // 3 second delay between requests
         config.sessdata.as_deref(),
         progress_callback,
-    ).await;
+    )
+    .await;
 
     // Clear is_downloading_comments flag
     {

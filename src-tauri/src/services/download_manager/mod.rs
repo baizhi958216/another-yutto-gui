@@ -1,15 +1,15 @@
-mod output_parser;
 mod json_parser;
+mod output_parser;
 
-use crate::models::download::{DownloadConfig, DownloadTask, DownloadStatus, VideoInfo};
+use crate::models::download::{DownloadConfig, DownloadStatus, DownloadTask, VideoInfo};
 use crate::utils::bundled_binaries;
 use std::collections::HashMap;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use tokio::sync::Mutex;
-use tokio::process::Command;
-use tokio::io::BufReader;
 use std::process::Stdio;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
+use tokio::io::BufReader;
+use tokio::process::Command;
+use tokio::sync::Mutex;
 
 pub struct DownloadManager {
     pub active_downloads: Arc<Mutex<HashMap<String, DownloadTask>>>,
@@ -27,7 +27,8 @@ impl DownloadManager {
     }
 
     pub fn set_max_concurrent(&self, max_concurrent: usize) {
-        self.max_concurrent.store(max_concurrent.max(1), Ordering::SeqCst);
+        self.max_concurrent
+            .store(max_concurrent.max(1), Ordering::SeqCst);
     }
 
     pub fn max_concurrent(&self) -> usize {
@@ -90,7 +91,13 @@ impl DownloadManager {
         }
 
         for (task_id, config) in tasks_to_start {
-            Self::spawn_download_task(task_id, config, downloads.clone(), max_concurrent.clone(), app_handle.clone());
+            Self::spawn_download_task(
+                task_id,
+                config,
+                downloads.clone(),
+                max_concurrent.clone(),
+                app_handle.clone(),
+            );
         }
     }
 
@@ -102,7 +109,13 @@ impl DownloadManager {
         app_handle: tauri::AppHandle,
     ) {
         tokio::spawn(async move {
-            let result = Self::run_yutto_download(task_id.clone(), config, downloads.clone(), app_handle.clone()).await;
+            let result = Self::run_yutto_download(
+                task_id.clone(),
+                config,
+                downloads.clone(),
+                app_handle.clone(),
+            )
+            .await;
             if let Err(e) = result {
                 let mut downloads = downloads.lock().await;
                 if let Some(task) = downloads.get_mut(&task_id) {
@@ -114,7 +127,12 @@ impl DownloadManager {
         });
     }
 
-    pub async fn start_download(&self, task_id: String, config: DownloadConfig, video_info: Option<VideoInfo>) -> Result<(), String> {
+    pub async fn start_download(
+        &self,
+        task_id: String,
+        config: DownloadConfig,
+        video_info: Option<VideoInfo>,
+    ) -> Result<(), String> {
         let mut downloads = self.active_downloads.lock().await;
         let active_count = downloads
             .values()
@@ -138,16 +156,16 @@ impl DownloadManager {
             error: None,
             warning: None,
             video_info: video_info.clone(),
-            total_size: 0, // Will be updated from yutto output
-            downloaded_bytes: 0, // NEW: Will be updated from JSON output
-            total_bytes: 0, // NEW: Will be updated from JSON output
-            speed_bytes_per_sec: 0.0, // NEW: Will be updated from JSON output
-            eta_seconds: None, // NEW: Will be updated from JSON output
-            files_count: None, // NEW: Will be updated from JSON output
-            saved_file_path: None, // Will be parsed from yutto output
-            comment_file_path: None, // Will be set after comment download
+            total_size: 0,                   // Will be updated from yutto output
+            downloaded_bytes: 0,             // NEW: Will be updated from JSON output
+            total_bytes: 0,                  // NEW: Will be updated from JSON output
+            speed_bytes_per_sec: 0.0,        // NEW: Will be updated from JSON output
+            eta_seconds: None,               // NEW: Will be updated from JSON output
+            files_count: None,               // NEW: Will be updated from JSON output
+            saved_file_path: None,           // Will be parsed from yutto output
+            comment_file_path: None,         // Will be set after comment download
             comment_download_progress: None, // Will be updated during comment download
-            is_downloading_comments: false, // Will be set to true when downloading comments
+            is_downloading_comments: false,  // Will be set to true when downloading comments
             start_time: Self::now_millis(),
             process_id: None, // Will be set after process spawns
             paused_at_progress: None,
@@ -158,7 +176,13 @@ impl DownloadManager {
         drop(downloads);
 
         if status == DownloadStatus::Downloading {
-            Self::spawn_download_task(task_id, config, self.active_downloads.clone(), self.max_concurrent.clone(), self.app_handle.clone());
+            Self::spawn_download_task(
+                task_id,
+                config,
+                self.active_downloads.clone(),
+                self.max_concurrent.clone(),
+                self.app_handle.clone(),
+            );
         }
 
         Ok(())
@@ -171,17 +195,18 @@ impl DownloadManager {
         app_handle: tauri::AppHandle,
     ) -> Result<(), String> {
         // Build yutto command (使用打包的二进制文件或系统版本)
-        let yutto_path = bundled_binaries::get_yutto_command_path(
-            &app_handle,
-            config.yutto_cli_path.as_deref(),
-        );
+        let yutto_path =
+            bundled_binaries::get_yutto_command_path(&app_handle, config.yutto_cli_path.as_deref());
         let mut cmd = Command::new(&yutto_path);
         cmd.arg(&config.url)
-            .arg("-q").arg(config.video_quality.to_string())
-            .arg("-aq").arg(config.audio_quality.to_string())
-            .arg("-d").arg(&config.download_path)
+            .arg("-q")
+            .arg(config.video_quality.to_string())
+            .arg("-aq")
+            .arg(config.audio_quality.to_string())
+            .arg("-d")
+            .arg(&config.download_path)
             .arg("--no-color")
-            .arg("--json-output")  // 使用 JSON 输出模式获取精确进度
+            .arg("--json-output") // 使用 JSON 输出模式获取精确进度
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
@@ -238,8 +263,7 @@ impl DownloadManager {
             if !episodes.is_empty() {
                 // Check if URL needs batch mode (same logic as yutto_cli.rs)
                 let url_lower = config.url.to_lowercase();
-                let needs_batch =
-                    url_lower.contains("/bangumi/play/ss")
+                let needs_batch = url_lower.contains("/bangumi/play/ss")
                     || url_lower.contains("/bangumi/media/md")
                     || url_lower.starts_with("ss")
                     || url_lower.starts_with("md")
@@ -302,18 +326,33 @@ impl DownloadManager {
         let task_id_clone = task_id.clone();
         let app_handle_clone = app_handle.clone();
         let stdout_handle = tokio::spawn(async move {
-            output_parser::process_output(stdout_reader, task_id_clone, downloads_clone, app_handle_clone).await;
+            output_parser::process_output(
+                stdout_reader,
+                task_id_clone,
+                downloads_clone,
+                app_handle_clone,
+            )
+            .await;
         });
 
         let downloads_clone = downloads.clone();
         let task_id_clone = task_id.clone();
         let app_handle_clone = app_handle.clone();
         let stderr_handle = tokio::spawn(async move {
-            output_parser::process_output(stderr_reader, task_id_clone, downloads_clone, app_handle_clone).await;
+            output_parser::process_output(
+                stderr_reader,
+                task_id_clone,
+                downloads_clone,
+                app_handle_clone,
+            )
+            .await;
         });
 
         // Wait for the process to complete
-        let status = child.wait().await.map_err(|e| format!("等待进程失败: {}", e))?;
+        let status = child
+            .wait()
+            .await
+            .map_err(|e| format!("等待进程失败: {}", e))?;
 
         // Wait for output processing to complete
         let _ = stdout_handle.await;
@@ -325,7 +364,8 @@ impl DownloadManager {
             // Download comments if requested
             if config.with_comments {
                 println!("[下载管理器] 开始下载评论...");
-                match output_parser::download_comments_for_task(&task_id, &config, &downloads).await {
+                match output_parser::download_comments_for_task(&task_id, &config, &downloads).await
+                {
                     Ok(_) => {
                         println!("[下载管理器] 评论下载完成");
                     }
@@ -360,8 +400,7 @@ impl DownloadManager {
         let mut downloads = self.active_downloads.lock().await;
 
         // Get PID before removing task
-        let pid = downloads.get(task_id)
-            .and_then(|task| task.process_id);
+        let pid = downloads.get(task_id).and_then(|task| task.process_id);
 
         // Kill process if it exists
         if let Some(pid) = pid {
@@ -376,7 +415,12 @@ impl DownloadManager {
         drop(downloads);
 
         // Start pending tasks
-        Self::start_pending_if_available(self.active_downloads.clone(), self.max_concurrent.clone(), self.app_handle.clone()).await;
+        Self::start_pending_if_available(
+            self.active_downloads.clone(),
+            self.max_concurrent.clone(),
+            self.app_handle.clone(),
+        )
+        .await;
         Ok(())
     }
 
@@ -384,8 +428,7 @@ impl DownloadManager {
         use crate::services::process_control::ProcessController;
 
         let mut downloads = self.active_downloads.lock().await;
-        let task = downloads.get_mut(task_id)
-            .ok_or("Task not found")?;
+        let task = downloads.get_mut(task_id).ok_or("Task not found")?;
 
         // Check if task is downloading
         if task.status != DownloadStatus::Downloading {
@@ -393,8 +436,7 @@ impl DownloadManager {
         }
 
         // Get PID
-        let pid = task.process_id
-            .ok_or("Process ID not available")?;
+        let pid = task.process_id.ok_or("Process ID not available")?;
 
         // Save current state
         task.paused_at_progress = Some(task.progress);
@@ -414,8 +456,7 @@ impl DownloadManager {
         use crate::services::process_control::ProcessController;
 
         let mut downloads = self.active_downloads.lock().await;
-        let task = downloads.get_mut(task_id)
-            .ok_or("Task not found")?;
+        let task = downloads.get_mut(task_id).ok_or("Task not found")?;
 
         // Check if task is paused
         if task.status != DownloadStatus::Paused {
@@ -423,8 +464,7 @@ impl DownloadManager {
         }
 
         // Get PID
-        let pid = task.process_id
-            .ok_or("Process ID not available")?;
+        let pid = task.process_id.ok_or("Process ID not available")?;
 
         // Check if process still exists
         if !ProcessController::is_process_alive(pid) {
@@ -450,6 +490,11 @@ impl DownloadManager {
     }
 
     pub async fn start_pending(&self) {
-        Self::start_pending_if_available(self.active_downloads.clone(), self.max_concurrent.clone(), self.app_handle.clone()).await;
+        Self::start_pending_if_available(
+            self.active_downloads.clone(),
+            self.max_concurrent.clone(),
+            self.app_handle.clone(),
+        )
+        .await;
     }
 }

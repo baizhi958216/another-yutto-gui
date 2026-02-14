@@ -1,12 +1,16 @@
-use crate::models::video::{QualityOption, AudioQualityOption};
+use crate::models::video::{AudioQualityOption, QualityOption};
 use crate::utils::http_client::create_bilibili_client;
-use crate::utils::quality_mapper::{
-    video_quality_to_description, audio_quality_to_description
-};
+use crate::utils::quality_mapper::{audio_quality_to_description, video_quality_to_description};
 use serde_json::Value;
 
 /// 获取视频的可用清晰度选项和音频质量选项
-pub async fn fetch_video_qualities(bvid: &str, _aid: i64, cid: i64, sessdata: Option<&str>, is_vip: bool) -> Result<(Vec<QualityOption>, Vec<AudioQualityOption>), String> {
+pub async fn fetch_video_qualities(
+    bvid: &str,
+    _aid: i64,
+    cid: i64,
+    sessdata: Option<&str>,
+    is_vip: bool,
+) -> Result<(Vec<QualityOption>, Vec<AudioQualityOption>), String> {
     // 构建播放信息 API URL
     let api_url = format!(
         "https://api.bilibili.com/x/player/playurl?bvid={}&cid={}&qn=127&fnval=4048&fourk=1",
@@ -35,22 +39,20 @@ pub async fn fetch_video_qualities(bvid: &str, _aid: i64, cid: i64, sessdata: Op
         .await
         .map_err(|e| format!("读取播放信息响应失败: {}", e))?;
 
-    let json: Value = serde_json::from_str(&json_text)
-        .map_err(|e| format!("解析播放信息JSON失败: {}", e))?;
+    let json: Value =
+        serde_json::from_str(&json_text).map_err(|e| format!("解析播放信息JSON失败: {}", e))?;
 
-    let code = json.get("code")
-        .and_then(|v| v.as_i64())
-        .unwrap_or(-1);
+    let code = json.get("code").and_then(|v| v.as_i64()).unwrap_or(-1);
 
     if code != 0 {
-        let message = json.get("message")
+        let message = json
+            .get("message")
             .and_then(|v| v.as_str())
             .unwrap_or("未知错误");
         return Err(format!("播放信息API返回错误: {} (code: {})", message, code));
     }
 
-    let data = json.get("data")
-        .ok_or("播放信息API响应中未找到data字段")?;
+    let data = json.get("data").ok_or("播放信息API响应中未找到data字段")?;
 
     // 检查用户是否登录
     let is_logged_in = sessdata.is_some() && !sessdata.unwrap().is_empty();
@@ -61,7 +63,8 @@ pub async fn fetch_video_qualities(bvid: &str, _aid: i64, cid: i64, sessdata: Op
         for format in support_formats {
             if let Some(quality) = format.get("quality").and_then(|q| q.as_i64()) {
                 let quality_code = quality as i32;
-                let description = format.get("new_description")
+                let description = format
+                    .get("new_description")
                     .and_then(|d| d.as_str())
                     .unwrap_or("")
                     .to_string();
@@ -109,7 +112,8 @@ pub async fn fetch_video_qualities(bvid: &str, _aid: i64, cid: i64, sessdata: Op
                     let quality_code = quality as i32;
                     if seen_qualities.insert(quality_code) {
                         let description = audio_quality_to_description(quality_code);
-                        let (vip_only, login_required) = get_audio_quality_requirements(quality_code);
+                        let (vip_only, login_required) =
+                            get_audio_quality_requirements(quality_code);
 
                         // 音频质量的可用性判断逻辑与视频相同
                         let available = if vip_only {
@@ -191,27 +195,123 @@ fn get_audio_quality_requirements(quality: i32) -> (bool, bool) {
 /// 获取默认的视频质量选项
 pub fn get_default_quality_options() -> Vec<QualityOption> {
     vec![
-        QualityOption { quality: 127, description: "8K 超高清".to_string(), available: false, vip_only: true, login_required: false },
-        QualityOption { quality: 126, description: "杜比视界".to_string(), available: false, vip_only: true, login_required: false },
-        QualityOption { quality: 125, description: "HDR 真彩".to_string(), available: false, vip_only: true, login_required: false },
-        QualityOption { quality: 120, description: "4K 超清".to_string(), available: false, vip_only: true, login_required: false },
-        QualityOption { quality: 116, description: "1080P 60帧".to_string(), available: false, vip_only: true, login_required: false },
-        QualityOption { quality: 112, description: "1080P 高码率".to_string(), available: false, vip_only: true, login_required: false },
-        QualityOption { quality: 80, description: "1080P 高清".to_string(), available: false, vip_only: false, login_required: true },
-        QualityOption { quality: 64, description: "720P 高清".to_string(), available: false, vip_only: false, login_required: true },
-        QualityOption { quality: 32, description: "480P 清晰".to_string(), available: false, vip_only: false, login_required: true },
-        QualityOption { quality: 16, description: "360P 流畅".to_string(), available: false, vip_only: false, login_required: true },
+        QualityOption {
+            quality: 127,
+            description: "8K 超高清".to_string(),
+            available: false,
+            vip_only: true,
+            login_required: false,
+        },
+        QualityOption {
+            quality: 126,
+            description: "杜比视界".to_string(),
+            available: false,
+            vip_only: true,
+            login_required: false,
+        },
+        QualityOption {
+            quality: 125,
+            description: "HDR 真彩".to_string(),
+            available: false,
+            vip_only: true,
+            login_required: false,
+        },
+        QualityOption {
+            quality: 120,
+            description: "4K 超清".to_string(),
+            available: false,
+            vip_only: true,
+            login_required: false,
+        },
+        QualityOption {
+            quality: 116,
+            description: "1080P 60帧".to_string(),
+            available: false,
+            vip_only: true,
+            login_required: false,
+        },
+        QualityOption {
+            quality: 112,
+            description: "1080P 高码率".to_string(),
+            available: false,
+            vip_only: true,
+            login_required: false,
+        },
+        QualityOption {
+            quality: 80,
+            description: "1080P 高清".to_string(),
+            available: false,
+            vip_only: false,
+            login_required: true,
+        },
+        QualityOption {
+            quality: 64,
+            description: "720P 高清".to_string(),
+            available: false,
+            vip_only: false,
+            login_required: true,
+        },
+        QualityOption {
+            quality: 32,
+            description: "480P 清晰".to_string(),
+            available: false,
+            vip_only: false,
+            login_required: true,
+        },
+        QualityOption {
+            quality: 16,
+            description: "360P 流畅".to_string(),
+            available: false,
+            vip_only: false,
+            login_required: true,
+        },
     ]
 }
 
 /// 获取默认的音频质量选项
 pub fn get_default_audio_quality_options() -> Vec<AudioQualityOption> {
     vec![
-        AudioQualityOption { quality: 30251, description: "Hi-Res无损".to_string(), available: false, vip_only: true, login_required: false },
-        AudioQualityOption { quality: 30255, description: "杜比音效".to_string(), available: false, vip_only: true, login_required: false },
-        AudioQualityOption { quality: 30250, description: "杜比全景声".to_string(), available: false, vip_only: true, login_required: false },
-        AudioQualityOption { quality: 30280, description: "320kbps".to_string(), available: false, vip_only: false, login_required: true },
-        AudioQualityOption { quality: 30232, description: "132kbps".to_string(), available: false, vip_only: false, login_required: true },
-        AudioQualityOption { quality: 30216, description: "64kbps".to_string(), available: false, vip_only: false, login_required: false },
+        AudioQualityOption {
+            quality: 30251,
+            description: "Hi-Res无损".to_string(),
+            available: false,
+            vip_only: true,
+            login_required: false,
+        },
+        AudioQualityOption {
+            quality: 30255,
+            description: "杜比音效".to_string(),
+            available: false,
+            vip_only: true,
+            login_required: false,
+        },
+        AudioQualityOption {
+            quality: 30250,
+            description: "杜比全景声".to_string(),
+            available: false,
+            vip_only: true,
+            login_required: false,
+        },
+        AudioQualityOption {
+            quality: 30280,
+            description: "320kbps".to_string(),
+            available: false,
+            vip_only: false,
+            login_required: true,
+        },
+        AudioQualityOption {
+            quality: 30232,
+            description: "132kbps".to_string(),
+            available: false,
+            vip_only: false,
+            login_required: true,
+        },
+        AudioQualityOption {
+            quality: 30216,
+            description: "64kbps".to_string(),
+            available: false,
+            vip_only: false,
+            login_required: false,
+        },
     ]
 }

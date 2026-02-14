@@ -34,9 +34,7 @@ impl Storage {
         )?;
 
         // Migrate old data if quality column exists
-        let has_old_quality = conn
-            .prepare("SELECT quality FROM history LIMIT 1")
-            .is_ok();
+        let has_old_quality = conn.prepare("SELECT quality FROM history LIMIT 1").is_ok();
 
         if has_old_quality {
             // Drop old table and recreate with new schema
@@ -178,7 +176,10 @@ impl Storage {
     }
 
     // Add history entry
-    pub fn add_history_entry(&self, entry: &crate::models::history::HistoryEntry) -> Result<(), Box<dyn Error>> {
+    pub fn add_history_entry(
+        &self,
+        entry: &crate::models::history::HistoryEntry,
+    ) -> Result<(), Box<dyn Error>> {
         let conn = Connection::open(&self.db_path)?;
         conn.execute(
             "INSERT INTO history (id, title, url, thumbnail, download_date, file_path, video_quality, audio_quality, video_only, audio_only, size, comment_file_path)
@@ -202,7 +203,11 @@ impl Storage {
     }
 
     // Get history entries with pagination
-    pub fn get_history(&self, page: u32, page_size: u32) -> Result<Vec<crate::models::history::HistoryEntry>, Box<dyn Error>> {
+    pub fn get_history(
+        &self,
+        page: u32,
+        page_size: u32,
+    ) -> Result<Vec<crate::models::history::HistoryEntry>, Box<dyn Error>> {
         let conn = Connection::open(&self.db_path)?;
         let offset = page * page_size;
 
@@ -213,35 +218,38 @@ impl Storage {
              LIMIT ?1 OFFSET ?2"
         )?;
 
-        let entries = stmt.query_map([page_size, offset], |row| {
-            Ok(crate::models::history::HistoryEntry {
-                id: row.get(0)?,
-                title: row.get(1)?,
-                url: row.get(2)?,
-                thumbnail: row.get(3)?,
-                download_date: row.get(4)?,
-                file_path: row.get(5)?,
-                video_quality: row.get(6)?,
-                audio_quality: row.get(7)?,
-                video_only: {
-                    let val: i32 = row.get(8)?;
-                    Some(val != 0)
-                },
-                audio_only: {
-                    let val: i32 = row.get(9)?;
-                    Some(val != 0)
-                },
-                size: row.get(10)?,
-                comment_file_path: row.get(11)?,
-            })
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
+        let entries = stmt
+            .query_map([page_size, offset], |row| {
+                Ok(crate::models::history::HistoryEntry {
+                    id: row.get(0)?,
+                    title: row.get(1)?,
+                    url: row.get(2)?,
+                    thumbnail: row.get(3)?,
+                    download_date: row.get(4)?,
+                    file_path: row.get(5)?,
+                    video_quality: row.get(6)?,
+                    audio_quality: row.get(7)?,
+                    video_only: {
+                        let val: i32 = row.get(8)?;
+                        Some(val != 0)
+                    },
+                    audio_only: {
+                        let val: i32 = row.get(9)?;
+                        Some(val != 0)
+                    },
+                    size: row.get(10)?,
+                    comment_file_path: row.get(11)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(entries)
     }
 
     // Get all history entries
-    pub fn get_all_history(&self) -> Result<Vec<crate::models::history::HistoryEntry>, Box<dyn Error>> {
+    pub fn get_all_history(
+        &self,
+    ) -> Result<Vec<crate::models::history::HistoryEntry>, Box<dyn Error>> {
         let conn = Connection::open(&self.db_path)?;
 
         let mut stmt = conn.prepare(
@@ -250,29 +258,30 @@ impl Storage {
              ORDER BY download_date DESC"
         )?;
 
-        let entries = stmt.query_map([], |row| {
-            Ok(crate::models::history::HistoryEntry {
-                id: row.get(0)?,
-                title: row.get(1)?,
-                url: row.get(2)?,
-                thumbnail: row.get(3)?,
-                download_date: row.get(4)?,
-                file_path: row.get(5)?,
-                video_quality: row.get(6)?,
-                audio_quality: row.get(7)?,
-                video_only: {
-                    let val: i32 = row.get(8)?;
-                    Some(val != 0)
-                },
-                audio_only: {
-                    let val: i32 = row.get(9)?;
-                    Some(val != 0)
-                },
-                size: row.get(10)?,
-                comment_file_path: row.get(11)?,
-            })
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
+        let entries = stmt
+            .query_map([], |row| {
+                Ok(crate::models::history::HistoryEntry {
+                    id: row.get(0)?,
+                    title: row.get(1)?,
+                    url: row.get(2)?,
+                    thumbnail: row.get(3)?,
+                    download_date: row.get(4)?,
+                    file_path: row.get(5)?,
+                    video_quality: row.get(6)?,
+                    audio_quality: row.get(7)?,
+                    video_only: {
+                        let val: i32 = row.get(8)?;
+                        Some(val != 0)
+                    },
+                    audio_only: {
+                        let val: i32 = row.get(9)?;
+                        Some(val != 0)
+                    },
+                    size: row.get(10)?,
+                    comment_file_path: row.get(11)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(entries)
     }

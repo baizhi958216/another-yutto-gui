@@ -2,7 +2,6 @@
 ///
 /// 此模块提供获取打包的 yutto 和 ffmpeg 二进制文件路径的功能。
 /// 实现了回退机制：优先使用打包的版本，如果不存在则回退到系统版本。
-
 use std::path::PathBuf;
 use tauri::Manager;
 
@@ -53,7 +52,10 @@ pub fn get_bundled_yutto_path(app_handle: &tauri::AppHandle) -> Option<PathBuf> 
         .resolve("yutto", tauri::path::BaseDirectory::Resource)
         .ok()?;
 
-    eprintln!("[bundled_binaries] 尝试使用打包的 yutto: {:?}", resource_path);
+    eprintln!(
+        "[bundled_binaries] 尝试使用打包的 yutto: {:?}",
+        resource_path
+    );
 
     if resource_path.exists() {
         eprintln!("[bundled_binaries] 找到打包的 yutto");
@@ -84,7 +86,10 @@ pub fn get_bundled_yutto_path(app_handle: &tauri::AppHandle) -> Option<PathBuf> 
             .join("binaries")
             .join(get_platform_binary_name("yutto"));
 
-        eprintln!("[bundled_binaries] 尝试父目录开发模式路径: {:?}", parent_dev_path);
+        eprintln!(
+            "[bundled_binaries] 尝试父目录开发模式路径: {:?}",
+            parent_dev_path
+        );
 
         if parent_dev_path.exists() {
             eprintln!("[bundled_binaries] 找到父目录开发模式的 yutto");
@@ -106,7 +111,10 @@ pub fn get_bundled_ffmpeg_path(app_handle: &tauri::AppHandle) -> Option<PathBuf>
         .resolve("ffmpeg", tauri::path::BaseDirectory::Resource)
         .ok()?;
 
-    eprintln!("[bundled_binaries] 尝试使用打包的 ffmpeg: {:?}", resource_path);
+    eprintln!(
+        "[bundled_binaries] 尝试使用打包的 ffmpeg: {:?}",
+        resource_path
+    );
 
     if resource_path.exists() {
         eprintln!("[bundled_binaries] 找到打包的 ffmpeg");
@@ -137,7 +145,10 @@ pub fn get_bundled_ffmpeg_path(app_handle: &tauri::AppHandle) -> Option<PathBuf>
             .join("binaries")
             .join(get_platform_binary_name("ffmpeg"));
 
-        eprintln!("[bundled_binaries] 尝试父目录开发模式路径: {:?}", parent_dev_path);
+        eprintln!(
+            "[bundled_binaries] 尝试父目录开发模式路径: {:?}",
+            parent_dev_path
+        );
 
         if parent_dev_path.exists() {
             eprintln!("[bundled_binaries] 找到父目录开发模式的 ffmpeg");
@@ -162,10 +173,7 @@ pub fn get_bundled_ffmpeg_path(app_handle: &tauri::AppHandle) -> Option<PathBuf>
 ///
 /// # 返回
 /// 返回 yutto 可执行文件的路径字符串
-pub fn get_yutto_command_path(
-    app_handle: &tauri::AppHandle,
-    custom_path: Option<&str>,
-) -> String {
+pub fn get_yutto_command_path(app_handle: &tauri::AppHandle, custom_path: Option<&str>) -> String {
     // 1. 优先使用用户配置的自定义路径
     if let Some(path) = custom_path {
         let trimmed = path.trim();
@@ -208,7 +216,10 @@ pub fn get_path_with_ffmpeg(app_handle: &tauri::AppHandle) -> Option<String> {
             let separator = ":";
 
             let new_path = format!("{}{}{}", ffmpeg_dir.display(), separator, current_path);
-            eprintln!("[bundled_binaries] 添加 ffmpeg 到 PATH: {}", ffmpeg_dir.display());
+            eprintln!(
+                "[bundled_binaries] 添加 ffmpeg 到 PATH: {}",
+                ffmpeg_dir.display()
+            );
             return Some(new_path);
         }
     }
@@ -226,14 +237,10 @@ pub fn is_yutto_available(app_handle: &tauri::AppHandle) -> bool {
 
     // 检查系统版本
     #[cfg(windows)]
-    let check_cmd = std::process::Command::new("where")
-        .arg("yutto")
-        .output();
+    let check_cmd = std::process::Command::new("where").arg("yutto").output();
 
     #[cfg(not(windows))]
-    let check_cmd = std::process::Command::new("which")
-        .arg("yutto")
-        .output();
+    let check_cmd = std::process::Command::new("which").arg("yutto").output();
 
     if let Ok(output) = check_cmd {
         output.status.success()
@@ -253,14 +260,10 @@ pub fn is_ffmpeg_available(app_handle: &tauri::AppHandle) -> bool {
 
     // 检查系统版本
     #[cfg(windows)]
-    let check_cmd = std::process::Command::new("where")
-        .arg("ffmpeg")
-        .output();
+    let check_cmd = std::process::Command::new("where").arg("ffmpeg").output();
 
     #[cfg(not(windows))]
-    let check_cmd = std::process::Command::new("which")
-        .arg("ffmpeg")
-        .output();
+    let check_cmd = std::process::Command::new("which").arg("ffmpeg").output();
 
     if let Ok(output) = check_cmd {
         output.status.success()

@@ -1,4 +1,4 @@
-pub mod video;
+pub mod comment;
 pub mod download;
 pub mod history;
-pub mod comment;
+pub mod video;

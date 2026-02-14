@@ -1,10 +1,14 @@
-use crate::models::video::{VideoInfo, Owner};
+use crate::models::video::{Owner, VideoInfo};
 use crate::utils::http_client::create_bilibili_client;
 use regex::Regex;
 use serde_json::Value;
 
 /// 从B站API获取视频信息
-pub async fn fetch_video_info_from_html(url: &str, sessdata: Option<&str>, is_vip: bool) -> Result<VideoInfo, String> {
+pub async fn fetch_video_info_from_html(
+    url: &str,
+    sessdata: Option<&str>,
+    is_vip: bool,
+) -> Result<VideoInfo, String> {
     let url_lower = url.to_lowercase();
 
     // 检查是否是番剧/课程链接
@@ -26,7 +30,9 @@ pub async fn fetch_video_info_from_html(url: &str, sessdata: Option<&str>, is_vi
         || url_lower.contains("/list/")
         || url_lower.contains("b23.tv/")
     {
-        eprintln!("[fetch_video_info_from_html] 检测到非普通视频链接，跳过 API 提取，直接使用 yutto CLI");
+        eprintln!(
+            "[fetch_video_info_from_html] 检测到非普通视频链接，跳过 API 提取，直接使用 yutto CLI"
+        );
         return Err("该链接类型不支持 API 提取，需要使用 yutto CLI".to_string());
     }
 
@@ -70,24 +76,22 @@ pub async fn fetch_video_info_from_html(url: &str, sessdata: Option<&str>, is_vi
         .map_err(|e| format!("读取响应失败: {}", e))?;
 
     // 解析 JSON
-    let json: Value = serde_json::from_str(&json_text)
-        .map_err(|e| format!("解析JSON失败: {}", e))?;
+    let json: Value =
+        serde_json::from_str(&json_text).map_err(|e| format!("解析JSON失败: {}", e))?;
 
     // 检查返回码
-    let code = json.get("code")
-        .and_then(|v| v.as_i64())
-        .unwrap_or(-1);
+    let code = json.get("code").and_then(|v| v.as_i64()).unwrap_or(-1);
 
     if code != 0 {
-        let message = json.get("message")
+        let message = json
+            .get("message")
             .and_then(|v| v.as_str())
             .unwrap_or("未知错误");
         return Err(format!("API返回错误: {} (code: {})", message, code));
     }
 
     // 提取 data 字段
-    let data = json.get("data")
-        .ok_or("API响应中未找到data字段")?;
+    let data = json.get("data").ok_or("API响应中未找到data字段")?;
 
     // 解析视频信息
     parse_api_response(data, sessdata, is_vip).await
@@ -119,31 +123,35 @@ pub fn extract_video_id(url: &str) -> Result<(Option<String>, Option<i64>), Stri
 }
 
 /// 解析 API 响应数据
-async fn parse_api_response(data: &Value, sessdata: Option<&str>, is_vip: bool) -> Result<VideoInfo, String> {
-    let title = data.get("title")
+async fn parse_api_response(
+    data: &Value,
+    sessdata: Option<&str>,
+    is_vip: bool,
+) -> Result<VideoInfo, String> {
+    let title = data
+        .get("title")
         .and_then(|v| v.as_str())
         .unwrap_or("")
         .to_string();
 
-    let bvid = data.get("bvid")
+    let bvid = data
+        .get("bvid")
         .and_then(|v| v.as_str())
         .unwrap_or("")
         .to_string();
 
-    let aid = data.get("aid")
-        .and_then(|v| v.as_i64())
-        .unwrap_or(0);
+    let aid = data.get("aid").and_then(|v| v.as_i64()).unwrap_or(0);
 
-    let thumbnail = data.get("pic")
+    let thumbnail = data
+        .get("pic")
         .and_then(|v| v.as_str())
         .unwrap_or("")
         .to_string();
 
-    let duration = data.get("duration")
-        .and_then(|v| v.as_i64())
-        .unwrap_or(0);
+    let duration = data.get("duration").and_then(|v| v.as_i64()).unwrap_or(0);
 
-    let description = data.get("desc")
+    let description = data
+        .get("desc")
         .and_then(|v| v.as_str())
         .unwrap_or("")
         .to_string();
@@ -151,14 +159,14 @@ async fn parse_api_response(data: &Value, sessdata: Option<&str>, is_vip: bool) 
     // 提取 UP 主信息
     let owner = if let Some(owner_data) = data.get("owner") {
         Owner {
-            uid: owner_data.get("mid")
-                .and_then(|v| v.as_i64())
-                .unwrap_or(0),
-            name: owner_data.get("name")
+            uid: owner_data.get("mid").and_then(|v| v.as_i64()).unwrap_or(0),
+            name: owner_data
+                .get("name")
                 .and_then(|v| v.as_str())
                 .unwrap_or("")
                 .to_string(),
-            face: owner_data.get("face")
+            face: owner_data
+                .get("face")
                 .and_then(|v| v.as_str())
                 .unwrap_or("")
                 .to_string(),
@@ -178,7 +186,8 @@ async fn parse_api_response(data: &Value, sessdata: Option<&str>, is_vip: bool) 
     };
 
     // 获取第一个分P的cid
-    let cid = data.get("cid")
+    let cid = data
+        .get("cid")
         .and_then(|v| v.as_i64())
         .or_else(|| {
             data.get("pages")
@@ -190,14 +199,20 @@ async fn parse_api_response(data: &Value, sessdata: Option<&str>, is_vip: bool) 
         .unwrap_or(0);
 
     // 获取视频质量选项和音频质量选项
-    let (available_qualities, available_audio_qualities) = super::quality::fetch_video_qualities(&bvid, aid, cid, sessdata, is_vip).await
-        .unwrap_or_else(|e| {
-            eprintln!("获取视频质量失败: {}, 使用默认选项", e);
-            (super::quality::get_default_quality_options(), super::quality::get_default_audio_quality_options())
-        });
+    let (available_qualities, available_audio_qualities) =
+        super::quality::fetch_video_qualities(&bvid, aid, cid, sessdata, is_vip)
+            .await
+            .unwrap_or_else(|e| {
+                eprintln!("获取视频质量失败: {}, 使用默认选项", e);
+                (
+                    super::quality::get_default_quality_options(),
+                    super::quality::get_default_audio_quality_options(),
+                )
+            });
 
     // 获取评论数量
-    let comment_count = data.get("stat")
+    let comment_count = data
+        .get("stat")
         .and_then(|stat| stat.get("reply"))
         .and_then(|v| v.as_i64());
 

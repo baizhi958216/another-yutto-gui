@@ -5,7 +5,10 @@ use serde_json::Value;
 /// 获取收藏夹用户信息
 pub async fn fetch_favorite_owner_info(fid: i64, sessdata: Option<&str>) -> Result<Owner, String> {
     // 构建收藏夹信息 API URL
-    let api_url = format!("https://api.bilibili.com/x/v3/fav/folder/info?media_id={}", fid);
+    let api_url = format!(
+        "https://api.bilibili.com/x/v3/fav/folder/info?media_id={}",
+        fid
+    );
 
     eprintln!("调用收藏夹信息 API: {}", api_url);
 
@@ -31,26 +34,27 @@ pub async fn fetch_favorite_owner_info(fid: i64, sessdata: Option<&str>) -> Resu
         .await
         .map_err(|e| format!("读取收藏夹信息响应失败: {}", e))?;
 
-    let json: Value = serde_json::from_str(&json_text)
-        .map_err(|e| format!("解析收藏夹信息JSON失败: {}", e))?;
+    let json: Value =
+        serde_json::from_str(&json_text).map_err(|e| format!("解析收藏夹信息JSON失败: {}", e))?;
 
-    let code = json.get("code")
-        .and_then(|v| v.as_i64())
-        .unwrap_or(-1);
+    let code = json.get("code").and_then(|v| v.as_i64()).unwrap_or(-1);
 
     if code != 0 {
-        let message = json.get("message")
+        let message = json
+            .get("message")
             .and_then(|v| v.as_str())
             .unwrap_or("未知错误");
-        return Err(format!("收藏夹信息API返回错误: {} (code: {})", message, code));
+        return Err(format!(
+            "收藏夹信息API返回错误: {} (code: {})",
+            message, code
+        ));
     }
 
-    let data = json.get("data")
+    let data = json
+        .get("data")
         .ok_or("收藏夹信息API响应中未找到data字段")?;
 
-    let uid = data.get("mid")
-        .and_then(|v| v.as_i64())
-        .unwrap_or(0);
+    let uid = data.get("mid").and_then(|v| v.as_i64()).unwrap_or(0);
 
     // 获取用户详细信息
     fetch_user_info(uid, sessdata).await
@@ -85,40 +89,40 @@ pub async fn fetch_user_info(uid: i64, sessdata: Option<&str>) -> Result<Owner, 
         .await
         .map_err(|e| format!("读取用户信息响应失败: {}", e))?;
 
-    let json: Value = serde_json::from_str(&json_text)
-        .map_err(|e| format!("解析用户信息JSON失败: {}", e))?;
+    let json: Value =
+        serde_json::from_str(&json_text).map_err(|e| format!("解析用户信息JSON失败: {}", e))?;
 
-    let code = json.get("code")
-        .and_then(|v| v.as_i64())
-        .unwrap_or(-1);
+    let code = json.get("code").and_then(|v| v.as_i64()).unwrap_or(-1);
 
     if code != 0 {
-        let message = json.get("message")
+        let message = json
+            .get("message")
             .and_then(|v| v.as_str())
             .unwrap_or("未知错误");
         return Err(format!("用户信息API返回错误: {} (code: {})", message, code));
     }
 
-    let data = json.get("data")
-        .ok_or("用户信息API响应中未找到data字段")?;
+    let data = json.get("data").ok_or("用户信息API响应中未找到data字段")?;
 
     let owner = Owner {
         uid,
-        name: data.get("name")
+        name: data
+            .get("name")
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string(),
-        face: data.get("face")
+        face: data
+            .get("face")
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string(),
-        sign: data.get("sign")
+        sign: data
+            .get("sign")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string()),
-        level: data.get("level")
-            .and_then(|v| v.as_i64())
-            .map(|l| l as i32),
-        location: data.get("live_room")
+        level: data.get("level").and_then(|v| v.as_i64()).map(|l| l as i32),
+        location: data
+            .get("live_room")
             .and_then(|lr| lr.get("area_name"))
             .and_then(|v| v.as_str())
             .map(|s| s.to_string()),

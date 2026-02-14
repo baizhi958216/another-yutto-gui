@@ -5,13 +5,13 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct YuttoProgressJson {
     #[serde(rename = "type")]
-    pub msg_type: String,        // "progress"
-    pub downloaded: i64,          // bytes downloaded
-    pub total: i64,               // total bytes
-    pub speed: f64,               // bytes per second
-    pub progress: f64,            // percentage (0-100)
-    pub eta: f64,                 // seconds remaining
-    pub files: Option<i32>,       // number of files
+    pub msg_type: String, // "progress"
+    pub downloaded: i64,    // bytes downloaded
+    pub total: i64,         // total bytes
+    pub speed: f64,         // bytes per second
+    pub progress: f64,      // percentage (0-100)
+    pub eta: f64,           // seconds remaining
+    pub files: Option<i32>, // number of files
 }
 
 /// Parsed progress data extracted from JSON or regex

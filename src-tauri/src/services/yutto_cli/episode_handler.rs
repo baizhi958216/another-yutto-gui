@@ -4,9 +4,7 @@ use quick_xml::Reader;
 
 /// 从文件名提取剧集序号
 pub fn extract_episode_index(path: &std::path::Path, fallback_idx: usize) -> i64 {
-    let filename = path.file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("");
+    let filename = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
 
     // 尝试 S01E01 格式（番剧）
     let bangumi_re = regex::Regex::new(r"S\d+E(\d+)").unwrap();
@@ -62,7 +60,10 @@ pub fn extract_episode_id(url: &str, fallback: i64) -> i64 {
         }
     }
 
-    eprintln!("[extract_episode_id] 无法从 URL 提取 ID，使用 fallback: {}", fallback);
+    eprintln!(
+        "[extract_episode_id] 无法从 URL 提取 ID，使用 fallback: {}",
+        fallback
+    );
     // 回退到 index
     fallback
 }
@@ -115,10 +116,16 @@ pub fn parse_episode_xml(xml: &str, index: i64) -> Result<Episode, String> {
         eprintln!("[parse_episode_xml] 使用 source 字段提取 ep_id: {}", source);
         &source
     } else if !website.is_empty() {
-        eprintln!("[parse_episode_xml] 使用 website 字段提取 ep_id: {}", website);
+        eprintln!(
+            "[parse_episode_xml] 使用 website 字段提取 ep_id: {}",
+            website
+        );
         &website
     } else {
-        eprintln!("[parse_episode_xml] source 和 website 字段都为空，使用 fallback index: {}", index);
+        eprintln!(
+            "[parse_episode_xml] source 和 website 字段都为空，使用 fallback index: {}",
+            index
+        );
         ""
     };
 

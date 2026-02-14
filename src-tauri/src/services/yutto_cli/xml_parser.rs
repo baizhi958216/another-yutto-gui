@@ -1,10 +1,15 @@
-use crate::models::video::{VideoInfo, Owner};
+use crate::models::video::{Owner, VideoInfo};
 use crate::services::bilibili_api::BilibiliApi;
 use quick_xml::events::Event;
 use quick_xml::Reader;
 
 /// 解析 XML 元数据文件
-pub async fn parse_xml(xml: &str, original_url: &str, series_name: &str, sessdata: Option<&str>) -> Result<VideoInfo, String> {
+pub async fn parse_xml(
+    xml: &str,
+    original_url: &str,
+    series_name: &str,
+    sessdata: Option<&str>,
+) -> Result<VideoInfo, String> {
     let mut reader = Reader::from_str(xml);
     reader.config_mut().trim_text(true);
 
@@ -66,7 +71,10 @@ pub async fn parse_xml(xml: &str, original_url: &str, series_name: &str, sessdat
     // 从 website URL 中提取 bvid 和 aid
     // 如果 website 为空，使用原始 URL
     let url_to_parse = if website.is_empty() {
-        eprintln!("[yutto_cli] website 字段为空，使用原始 URL: {}", original_url);
+        eprintln!(
+            "[yutto_cli] website 字段为空，使用原始 URL: {}",
+            original_url
+        );
         original_url
     } else {
         eprintln!("[yutto_cli] website URL: {}", website);
@@ -120,7 +128,10 @@ pub async fn parse_xml(xml: &str, original_url: &str, series_name: &str, sessdat
     } else {
         // 如果是番剧且没有 owner_name，使用系列名称
         let final_owner_name = if is_bangumi && owner_name.is_empty() {
-            eprintln!("[yutto_cli] 番剧没有 owner_name，使用系列名称: {}", series_name);
+            eprintln!(
+                "[yutto_cli] 番剧没有 owner_name，使用系列名称: {}",
+                series_name
+            );
             series_name.to_string()
         } else {
             owner_name

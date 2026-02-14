@@ -10,7 +10,9 @@ pub async fn start_download(
     manager: State<'_, Arc<DownloadManager>>,
 ) -> Result<String, String> {
     let task_id = uuid::Uuid::new_v4().to_string();
-    manager.start_download(task_id.clone(), config, video_info).await?;
+    manager
+        .start_download(task_id.clone(), config, video_info)
+        .await?;
     Ok(task_id)
 }
 

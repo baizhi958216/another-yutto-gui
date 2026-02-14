@@ -1,5 +1,5 @@
-mod quality_fetcher;
 mod episode_handler;
+mod quality_fetcher;
 mod xml_parser;
 
 use crate::models::video::VideoInfo;
@@ -36,10 +36,11 @@ impl YuttoCli {
         app_handle: &tauri::AppHandle,
         url: &str,
         sessdata: Option<&str>,
-        is_vip: bool
+        is_vip: bool,
     ) -> Result<VideoInfo, String> {
         // 创建临时目录用于存放元数据
-        let temp_dir = std::env::temp_dir().join(format!("yutto_metadata_{}", uuid::Uuid::new_v4()));
+        let temp_dir =
+            std::env::temp_dir().join(format!("yutto_metadata_{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&temp_dir).map_err(|e| format!("创建临时目录失败: {}", e))?;
 
         let url_lower = url.to_lowercase();
@@ -111,7 +112,10 @@ impl YuttoCli {
         eprintln!("[yutto_cli] 执行命令: {:?}", cmd);
         let output = cmd.output().map_err(|e| {
             eprintln!("[yutto_cli] 命令执行错误: {}", e);
-            format!("执行 yutto 命令失败: {}. 请确保已安装 yutto (pip install yutto)", e)
+            format!(
+                "执行 yutto 命令失败: {}. 请确保已安装 yutto (pip install yutto)",
+                e
+            )
         })?;
 
         if !output.status.success() {
@@ -172,7 +176,12 @@ impl YuttoCli {
                     // 解析剧集信息
                     match episode_handler::parse_episode_xml(&xml_content, episode_index) {
                         Ok(episode) => {
-                            eprintln!("[yutto_cli] 解析剧集 {}: {} (index: {})", idx + 1, episode.title, episode.index);
+                            eprintln!(
+                                "[yutto_cli] 解析剧集 {}: {} (index: {})",
+                                idx + 1,
+                                episode.title,
+                                episode.index
+                            );
                             episodes.push(episode);
                         }
                         Err(e) => {
@@ -191,7 +200,10 @@ impl YuttoCli {
                         };
                         eprintln!("[yutto_cli] XML 内容预览:\n{}", preview);
 
-                        base_video_info = Some(xml_parser::parse_xml(&xml_content, url, &series_name, sessdata).await?);
+                        base_video_info = Some(
+                            xml_parser::parse_xml(&xml_content, url, &series_name, sessdata)
+                                .await?,
+                        );
                     }
                 }
                 Err(e) => {
@@ -213,7 +225,10 @@ impl YuttoCli {
         // 附加剧集列表到视频信息
         let mut video_info = base_video_info.unwrap();
         if episodes.len() > 1 {
-            eprintln!("[yutto_cli] 找到 {} 个剧集，添加到视频信息中", episodes.len());
+            eprintln!(
+                "[yutto_cli] 找到 {} 个剧集，添加到视频信息中",
+                episodes.len()
+            );
             video_info.episodes = Some(episodes.clone());
             // 对于多剧集番剧，使用系列名称作为标题
             if !series_name.is_empty() {
@@ -227,18 +242,30 @@ impl YuttoCli {
             if is_bangumi {
                 // 番剧：使用番剧 API 获取质量选项
                 if let Some(first_episode) = episodes.first() {
-                    eprintln!("[yutto_cli] 检测到番剧，尝试获取第一个剧集的质量选项，ep_id: {}", first_episode.id);
+                    eprintln!(
+                        "[yutto_cli] 检测到番剧，尝试获取第一个剧集的质量选项，ep_id: {}",
+                        first_episode.id
+                    );
 
                     // 如果 ep_id 看起来不对（太小），尝试从 URL 中提取 ss_id 并获取剧集列表
                     let ep_id_to_use = if first_episode.id < 100 {
-                        eprintln!("[yutto_cli] ep_id 看起来不正确 ({}), 尝试从 URL 获取 ss_id", first_episode.id);
+                        eprintln!(
+                            "[yutto_cli] ep_id 看起来不正确 ({}), 尝试从 URL 获取 ss_id",
+                            first_episode.id
+                        );
                         match quality_fetcher::get_first_episode_id_from_season(url).await {
                             Ok(real_ep_id) => {
-                                eprintln!("[yutto_cli] 从番剧 API 获取到第一个剧集的 ep_id: {}", real_ep_id);
+                                eprintln!(
+                                    "[yutto_cli] 从番剧 API 获取到第一个剧集的 ep_id: {}",
+                                    real_ep_id
+                                );
                                 real_ep_id
                             }
                             Err(e) => {
-                                eprintln!("[yutto_cli] 从番剧 API 获取 ep_id 失败: {}, 使用原始 ep_id", e);
+                                eprintln!(
+                                    "[yutto_cli] 从番剧 API 获取 ep_id 失败: {}, 使用原始 ep_id",
+                                    e
+                                );
                                 first_episode.id
                             }
                         }
@@ -246,7 +273,9 @@ impl YuttoCli {
                         first_episode.id
                     };
 
-                    match quality_fetcher::fetch_bangumi_qualities(ep_id_to_use, sessdata, is_vip).await {
+                    match quality_fetcher::fetch_bangumi_qualities(ep_id_to_use, sessdata, is_vip)
+                        .await
+                    {
                         Ok((qualities, audio_qualities)) => {
                             eprintln!("[yutto_cli] 成功获取番剧质量选项");
                             video_info.available_qualities = Some(qualities);
@@ -260,13 +289,26 @@ impl YuttoCli {
             } else {
                 // 普通视频（收藏夹等）：使用普通视频 API 获取质量选项
                 eprintln!("[yutto_cli] 检测到普通视频（BV/AV），使用普通视频 API 获取质量选项");
-                eprintln!("[yutto_cli] bvid: {}, aid: {}", video_info.bvid, video_info.aid);
+                eprintln!(
+                    "[yutto_cli] bvid: {}, aid: {}",
+                    video_info.bvid, video_info.aid
+                );
 
                 // 获取第一个视频的 cid（需要调用 API）
-                match quality_fetcher::fetch_video_cid(&video_info.bvid, video_info.aid, sessdata).await {
+                match quality_fetcher::fetch_video_cid(&video_info.bvid, video_info.aid, sessdata)
+                    .await
+                {
                     Ok(cid) => {
                         eprintln!("[yutto_cli] 获取到 cid: {}", cid);
-                        match quality_fetcher::fetch_video_qualities(&video_info.bvid, video_info.aid, cid, sessdata, is_vip).await {
+                        match quality_fetcher::fetch_video_qualities(
+                            &video_info.bvid,
+                            video_info.aid,
+                            cid,
+                            sessdata,
+                            is_vip,
+                        )
+                        .await
+                        {
                             Ok((qualities, audio_qualities)) => {
                                 eprintln!("[yutto_cli] 成功获取普通视频质量选项");
                                 video_info.available_qualities = Some(qualities);
@@ -291,7 +333,10 @@ impl YuttoCli {
             if is_bangumi {
                 // 番剧：使用番剧 API 获取质量选项
                 if let Some(first_episode) = episodes.first() {
-                    eprintln!("[yutto_cli] 检测到番剧，尝试获取第一个剧集的质量选项，ep_id: {}", first_episode.id);
+                    eprintln!(
+                        "[yutto_cli] 检测到番剧，尝试获取第一个剧集的质量选项，ep_id: {}",
+                        first_episode.id
+                    );
 
                     // 优先从 URL 提取 ep_id（适配单集番剧链接）
                     let ep_id_from_url = episode_handler::extract_episode_id(url, first_episode.id);
@@ -301,14 +346,23 @@ impl YuttoCli {
 
                     // 如果 ep_id 看起来不对（太小），尝试从 URL 中提取 ss_id 并获取剧集列表
                     let ep_id_to_use = if ep_id_from_url < 100 {
-                        eprintln!("[yutto_cli] ep_id 看起来不正确 ({}), 尝试从 URL 获取 ss_id", ep_id_from_url);
+                        eprintln!(
+                            "[yutto_cli] ep_id 看起来不正确 ({}), 尝试从 URL 获取 ss_id",
+                            ep_id_from_url
+                        );
                         match quality_fetcher::get_first_episode_id_from_season(url).await {
                             Ok(real_ep_id) => {
-                                eprintln!("[yutto_cli] 从番剧 API 获取到第一个剧集的 ep_id: {}", real_ep_id);
+                                eprintln!(
+                                    "[yutto_cli] 从番剧 API 获取到第一个剧集的 ep_id: {}",
+                                    real_ep_id
+                                );
                                 real_ep_id
                             }
                             Err(e) => {
-                                eprintln!("[yutto_cli] 从番剧 API 获取 ep_id 失败: {}, 使用原始 ep_id", e);
+                                eprintln!(
+                                    "[yutto_cli] 从番剧 API 获取 ep_id 失败: {}, 使用原始 ep_id",
+                                    e
+                                );
                                 ep_id_from_url
                             }
                         }
@@ -316,7 +370,9 @@ impl YuttoCli {
                         ep_id_from_url
                     };
 
-                    match quality_fetcher::fetch_bangumi_qualities(ep_id_to_use, sessdata, is_vip).await {
+                    match quality_fetcher::fetch_bangumi_qualities(ep_id_to_use, sessdata, is_vip)
+                        .await
+                    {
                         Ok((qualities, audio_qualities)) => {
                             eprintln!("[yutto_cli] 成功获取番剧质量选项");
                             video_info.available_qualities = Some(qualities);
@@ -330,13 +386,26 @@ impl YuttoCli {
             } else {
                 // 普通视频（收藏夹等）：使用普通视频 API 获取质量选项
                 eprintln!("[yutto_cli] 检测到普通视频（BV/AV），使用普通视频 API 获取质量选项");
-                eprintln!("[yutto_cli] bvid: {}, aid: {}", video_info.bvid, video_info.aid);
+                eprintln!(
+                    "[yutto_cli] bvid: {}, aid: {}",
+                    video_info.bvid, video_info.aid
+                );
 
                 // 获取第一个视频的 cid（需要调用 API）
-                match quality_fetcher::fetch_video_cid(&video_info.bvid, video_info.aid, sessdata).await {
+                match quality_fetcher::fetch_video_cid(&video_info.bvid, video_info.aid, sessdata)
+                    .await
+                {
                     Ok(cid) => {
                         eprintln!("[yutto_cli] 获取到 cid: {}", cid);
-                        match quality_fetcher::fetch_video_qualities(&video_info.bvid, video_info.aid, cid, sessdata, is_vip).await {
+                        match quality_fetcher::fetch_video_qualities(
+                            &video_info.bvid,
+                            video_info.aid,
+                            cid,
+                            sessdata,
+                            is_vip,
+                        )
+                        .await
+                        {
                             Ok((qualities, audio_qualities)) => {
                                 eprintln!("[yutto_cli] 成功获取普通视频质量选项");
                                 video_info.available_qualities = Some(qualities);
@@ -364,8 +433,7 @@ impl YuttoCli {
     fn find_nfo_files(dir: &std::path::Path) -> Result<Vec<std::path::PathBuf>, String> {
         let mut nfo_files = Vec::new();
 
-        let entries = std::fs::read_dir(dir)
-            .map_err(|e| format!("读取目录失败: {}", e))?;
+        let entries = std::fs::read_dir(dir).map_err(|e| format!("读取目录失败: {}", e))?;
 
         for entry in entries.filter_map(|e| e.ok()) {
             let path = entry.path();

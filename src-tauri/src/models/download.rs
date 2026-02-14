@@ -56,9 +56,9 @@ pub struct DownloadTask {
     pub saved_file_path: Option<String>, // Actual saved file path parsed from yutto output
     pub comment_file_path: Option<String>, // Comment file path if comments were downloaded
     pub comment_download_progress: Option<String>, // Comment download progress like "121/450"
-    pub is_downloading_comments: bool, // Whether currently downloading comments
-    pub start_time: i64, // Download start timestamp in milliseconds
-    pub process_id: Option<u32>, // Process ID for pause/resume control
+    pub is_downloading_comments: bool,   // Whether currently downloading comments
+    pub start_time: i64,                 // Download start timestamp in milliseconds
+    pub process_id: Option<u32>,         // Process ID for pause/resume control
     pub paused_at_progress: Option<f64>, // Progress when paused
     pub paused_at_speed: Option<String>, // Speed when paused
 }

@@ -1,6 +1,6 @@
-use tauri::{AppHandle, Manager, State, Emitter};
-use tauri::webview::WebviewWindowBuilder;
 use crate::services::storage::Storage;
+use tauri::webview::WebviewWindowBuilder;
+use tauri::{AppHandle, Emitter, Manager, State};
 use url::Url;
 
 // Validate SESSDATA format (at least 32 characters)
@@ -80,13 +80,19 @@ pub async fn check_vip_status(sessdata: String) -> Result<bool, String> {
         .await
         .map_err(|e| format!("Failed to parse response: {}", e))?;
 
-    eprintln!("[VIP Check] API Response: {}", serde_json::to_string_pretty(&json).unwrap_or_default());
+    eprintln!(
+        "[VIP Check] API Response: {}",
+        serde_json::to_string_pretty(&json).unwrap_or_default()
+    );
 
     // Check if code is 0 (success) and vip.status is 1 or vip.type is 2 (annual VIP)
     if json["code"].as_i64() == Some(0) {
         if let Some(data) = json.get("data") {
             if let Some(vip) = data.get("vip") {
-                eprintln!("[VIP Check] VIP data: {}", serde_json::to_string_pretty(vip).unwrap_or_default());
+                eprintln!(
+                    "[VIP Check] VIP data: {}",
+                    serde_json::to_string_pretty(vip).unwrap_or_default()
+                );
 
                 // Check vip.type: 0=无, 1=月度大会员, 2=年度大会员
                 if let Some(vip_type) = vip.get("type").and_then(|v| v.as_i64()) {
@@ -191,25 +197,38 @@ pub async fn open_login_window(app: AppHandle) -> Result<(), String> {
                         match window.cookies_for_url(url) {
                             Ok(cookies) => {
                                 if check_count % 5 == 0 {
-                                    println!("[Auth] Found {} cookies for domain: {}", cookies.len(), domain);
+                                    println!(
+                                        "[Auth] Found {} cookies for domain: {}",
+                                        cookies.len(),
+                                        domain
+                                    );
                                 }
 
                                 for cookie in cookies {
                                     if cookie.name() == "SESSDATA" {
                                         let sessdata = cookie.value().to_string();
-                                        println!("[Auth] Found SESSDATA (length: {})", sessdata.len());
+                                        println!(
+                                            "[Auth] Found SESSDATA (length: {})",
+                                            sessdata.len()
+                                        );
 
                                         // Save SESSDATA
                                         if let Some(storage) = app_handle.try_state::<Storage>() {
-                                            if let Err(e) = storage.save_sessdata(sessdata.clone()) {
+                                            if let Err(e) = storage.save_sessdata(sessdata.clone())
+                                            {
                                                 eprintln!("[Auth] Failed to save SESSDATA: {}", e);
                                                 continue;
                                             }
                                             println!("[Auth] SESSDATA saved successfully");
 
                                             // Emit login-success event
-                                            if let Err(e) = app_handle.emit("login-success", sessdata) {
-                                                eprintln!("[Auth] Failed to emit login-success: {}", e);
+                                            if let Err(e) =
+                                                app_handle.emit("login-success", sessdata)
+                                            {
+                                                eprintln!(
+                                                    "[Auth] Failed to emit login-success: {}",
+                                                    e
+                                                );
                                             }
 
                                             // Close login window
@@ -227,7 +246,10 @@ pub async fn open_login_window(app: AppHandle) -> Result<(), String> {
                             }
                             Err(e) => {
                                 if check_count % 5 == 0 {
-                                    eprintln!("[Auth] Failed to get cookies for {}: {:?}", domain, e);
+                                    eprintln!(
+                                        "[Auth] Failed to get cookies for {}: {:?}",
+                                        domain, e
+                                    );
                                 }
                             }
                         }

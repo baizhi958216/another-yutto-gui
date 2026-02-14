@@ -1,13 +1,17 @@
-use crate::models::video::{QualityOption, AudioQualityOption};
+use crate::models::video::{AudioQualityOption, QualityOption};
 use crate::utils::http_client::create_bilibili_client;
 use crate::utils::quality_mapper::{
-    video_quality_to_description, audio_quality_to_description,
-    get_video_quality_requirements, get_audio_quality_requirements
+    audio_quality_to_description, get_audio_quality_requirements, get_video_quality_requirements,
+    video_quality_to_description,
 };
 use serde_json::Value;
 
 /// 获取番剧的质量选项（通过第一个剧集的ep_id）
-pub async fn fetch_bangumi_qualities(ep_id: i64, sessdata: Option<&str>, is_vip: bool) -> Result<(Vec<QualityOption>, Vec<AudioQualityOption>), String> {
+pub async fn fetch_bangumi_qualities(
+    ep_id: i64,
+    sessdata: Option<&str>,
+    is_vip: bool,
+) -> Result<(Vec<QualityOption>, Vec<AudioQualityOption>), String> {
     // 构建番剧播放信息 API URL
     let api_url = format!(
         "https://api.bilibili.com/pgc/player/web/playurl?ep_id={}&qn=127&fnval=4048&fourk=1",
@@ -36,21 +40,24 @@ pub async fn fetch_bangumi_qualities(ep_id: i64, sessdata: Option<&str>, is_vip:
         .await
         .map_err(|e| format!("读取番剧播放信息响应失败: {}", e))?;
 
-    let json: Value = serde_json::from_str(&json_text)
-        .map_err(|e| format!("解析番剧播放信息JSON失败: {}", e))?;
+    let json: Value =
+        serde_json::from_str(&json_text).map_err(|e| format!("解析番剧播放信息JSON失败: {}", e))?;
 
-    let code = json.get("code")
-        .and_then(|v| v.as_i64())
-        .unwrap_or(-1);
+    let code = json.get("code").and_then(|v| v.as_i64()).unwrap_or(-1);
 
     if code != 0 {
-        let message = json.get("message")
+        let message = json
+            .get("message")
             .and_then(|v| v.as_str())
             .unwrap_or("未知错误");
-        return Err(format!("番剧播放信息API返回错误: {} (code: {})", message, code));
+        return Err(format!(
+            "番剧播放信息API返回错误: {} (code: {})",
+            message, code
+        ));
     }
 
-    let result = json.get("result")
+    let result = json
+        .get("result")
         .ok_or("番剧播放信息API响应中未找到result字段")?;
 
     // 检查用户是否登录
@@ -62,7 +69,8 @@ pub async fn fetch_bangumi_qualities(ep_id: i64, sessdata: Option<&str>, is_vip:
         for format in support_formats {
             if let Some(quality) = format.get("quality").and_then(|q| q.as_i64()) {
                 let quality_code = quality as i32;
-                let description = format.get("new_description")
+                let description = format
+                    .get("new_description")
                     .and_then(|d| d.as_str())
                     .unwrap_or("")
                     .to_string();
@@ -106,7 +114,8 @@ pub async fn fetch_bangumi_qualities(ep_id: i64, sessdata: Option<&str>, is_vip:
                     let quality_code = quality as i32;
                     if seen_qualities.insert(quality_code) {
                         let description = audio_quality_to_description(quality_code);
-                        let (vip_only, login_required) = get_audio_quality_requirements(quality_code);
+                        let (vip_only, login_required) =
+                            get_audio_quality_requirements(quality_code);
 
                         let available = if vip_only {
                             is_vip
@@ -162,7 +171,10 @@ pub async fn fetch_bangumi_qualities(ep_id: i64, sessdata: Option<&str>, is_vip:
 pub async fn fetch_video_cid(bvid: &str, aid: i64, sessdata: Option<&str>) -> Result<i64, String> {
     // 构建 API URL
     let api_url = if !bvid.is_empty() {
-        format!("https://api.bilibili.com/x/web-interface/view?bvid={}", bvid)
+        format!(
+            "https://api.bilibili.com/x/web-interface/view?bvid={}",
+            bvid
+        )
     } else if aid > 0 {
         format!("https://api.bilibili.com/x/web-interface/view?aid={}", aid)
     } else {
@@ -191,25 +203,24 @@ pub async fn fetch_video_cid(bvid: &str, aid: i64, sessdata: Option<&str>) -> Re
         .await
         .map_err(|e| format!("读取视频信息响应失败: {}", e))?;
 
-    let json: Value = serde_json::from_str(&json_text)
-        .map_err(|e| format!("解析视频信息JSON失败: {}", e))?;
+    let json: Value =
+        serde_json::from_str(&json_text).map_err(|e| format!("解析视频信息JSON失败: {}", e))?;
 
-    let code = json.get("code")
-        .and_then(|v| v.as_i64())
-        .unwrap_or(-1);
+    let code = json.get("code").and_then(|v| v.as_i64()).unwrap_or(-1);
 
     if code != 0 {
-        let message = json.get("message")
+        let message = json
+            .get("message")
             .and_then(|v| v.as_str())
             .unwrap_or("未知错误");
         return Err(format!("视频信息API返回错误: {} (code: {})", message, code));
     }
 
-    let data = json.get("data")
-        .ok_or("视频信息API响应中未找到data字段")?;
+    let data = json.get("data").ok_or("视频信息API响应中未找到data字段")?;
 
     // 获取第一个分P的cid
-    let cid = data.get("cid")
+    let cid = data
+        .get("cid")
         .and_then(|v| v.as_i64())
         .or_else(|| {
             data.get("pages")
@@ -224,7 +235,13 @@ pub async fn fetch_video_cid(bvid: &str, aid: i64, sessdata: Option<&str>) -> Re
 }
 
 /// 获取视频的质量选项（通过 BV 号或 AV 号）
-pub async fn fetch_video_qualities(bvid: &str, aid: i64, cid: i64, sessdata: Option<&str>, is_vip: bool) -> Result<(Vec<QualityOption>, Vec<AudioQualityOption>), String> {
+pub async fn fetch_video_qualities(
+    bvid: &str,
+    aid: i64,
+    cid: i64,
+    sessdata: Option<&str>,
+    is_vip: bool,
+) -> Result<(Vec<QualityOption>, Vec<AudioQualityOption>), String> {
     // 构建播放信息 API URL
     let api_url = if !bvid.is_empty() {
         format!(
@@ -262,22 +279,20 @@ pub async fn fetch_video_qualities(bvid: &str, aid: i64, cid: i64, sessdata: Opt
         .await
         .map_err(|e| format!("读取播放信息响应失败: {}", e))?;
 
-    let json: Value = serde_json::from_str(&json_text)
-        .map_err(|e| format!("解析播放信息JSON失败: {}", e))?;
+    let json: Value =
+        serde_json::from_str(&json_text).map_err(|e| format!("解析播放信息JSON失败: {}", e))?;
 
-    let code = json.get("code")
-        .and_then(|v| v.as_i64())
-        .unwrap_or(-1);
+    let code = json.get("code").and_then(|v| v.as_i64()).unwrap_or(-1);
 
     if code != 0 {
-        let message = json.get("message")
+        let message = json
+            .get("message")
             .and_then(|v| v.as_str())
             .unwrap_or("未知错误");
         return Err(format!("播放信息API返回错误: {} (code: {})", message, code));
     }
 
-    let data = json.get("data")
-        .ok_or("播放信息API响应中未找到data字段")?;
+    let data = json.get("data").ok_or("播放信息API响应中未找到data字段")?;
 
     // 检查用户是否登录
     let is_logged_in = sessdata.is_some() && !sessdata.unwrap().is_empty();
@@ -288,7 +303,8 @@ pub async fn fetch_video_qualities(bvid: &str, aid: i64, cid: i64, sessdata: Opt
         for format in support_formats {
             if let Some(quality) = format.get("quality").and_then(|q| q.as_i64()) {
                 let quality_code = quality as i32;
-                let description = format.get("new_description")
+                let description = format
+                    .get("new_description")
                     .and_then(|d| d.as_str())
                     .unwrap_or("")
                     .to_string();
@@ -332,7 +348,8 @@ pub async fn fetch_video_qualities(bvid: &str, aid: i64, cid: i64, sessdata: Opt
                     let quality_code = quality as i32;
                     if seen_qualities.insert(quality_code) {
                         let description = audio_quality_to_description(quality_code);
-                        let (vip_only, login_required) = get_audio_quality_requirements(quality_code);
+                        let (vip_only, login_required) =
+                            get_audio_quality_requirements(quality_code);
 
                         let available = if vip_only {
                             is_vip
@@ -376,12 +393,20 @@ pub async fn get_first_episode_id_from_season(url: &str) -> Result<i64, String> 
     // 尝试从 URL 中提取 md_id
     let md_re = regex::Regex::new(r"md(\d+)").unwrap();
     if let Some(caps) = md_re.captures(url) {
-        let md_id = caps[1].parse::<i64>().map_err(|e| format!("解析 md_id 失败: {}", e))?;
-        eprintln!("[get_first_episode_id_from_season] 从 URL 提取到 md_id: {}", md_id);
+        let md_id = caps[1]
+            .parse::<i64>()
+            .map_err(|e| format!("解析 md_id 失败: {}", e))?;
+        eprintln!(
+            "[get_first_episode_id_from_season] 从 URL 提取到 md_id: {}",
+            md_id
+        );
 
         // 通过 md_id 获取 ss_id
         let ss_id = get_season_id_by_media_id(md_id, &client).await?;
-        eprintln!("[get_first_episode_id_from_season] 通过 md_id 获取到 ss_id: {}", ss_id);
+        eprintln!(
+            "[get_first_episode_id_from_season] 通过 md_id 获取到 ss_id: {}",
+            ss_id
+        );
 
         // 使用 ss_id 获取剧集列表
         return get_first_episode_id_by_season_id(ss_id, &client).await;
@@ -390,8 +415,13 @@ pub async fn get_first_episode_id_from_season(url: &str) -> Result<i64, String> 
     // 尝试从 URL 中提取 ss_id
     let ss_re = regex::Regex::new(r"ss(\d+)").unwrap();
     if let Some(caps) = ss_re.captures(url) {
-        let ss_id = caps[1].parse::<i64>().map_err(|e| format!("解析 ss_id 失败: {}", e))?;
-        eprintln!("[get_first_episode_id_from_season] 从 URL 提取到 ss_id: {}", ss_id);
+        let ss_id = caps[1]
+            .parse::<i64>()
+            .map_err(|e| format!("解析 ss_id 失败: {}", e))?;
+        eprintln!(
+            "[get_first_episode_id_from_season] 从 URL 提取到 ss_id: {}",
+            ss_id
+        );
 
         return get_first_episode_id_by_season_id(ss_id, &client).await;
     }
@@ -401,7 +431,10 @@ pub async fn get_first_episode_id_from_season(url: &str) -> Result<i64, String> 
 
 /// 通过 media_id 获取 season_id
 async fn get_season_id_by_media_id(media_id: i64, client: &reqwest::Client) -> Result<i64, String> {
-    let api_url = format!("https://api.bilibili.com/pgc/review/user?media_id={}", media_id);
+    let api_url = format!(
+        "https://api.bilibili.com/pgc/review/user?media_id={}",
+        media_id
+    );
 
     let response = client
         .get(&api_url)
@@ -418,27 +451,32 @@ async fn get_season_id_by_media_id(media_id: i64, client: &reqwest::Client) -> R
         .await
         .map_err(|e| format!("读取番剧媒体信息响应失败: {}", e))?;
 
-    let json: serde_json::Value = serde_json::from_str(&json_text)
-        .map_err(|e| format!("解析番剧媒体信息JSON失败: {}", e))?;
+    let json: serde_json::Value =
+        serde_json::from_str(&json_text).map_err(|e| format!("解析番剧媒体信息JSON失败: {}", e))?;
 
-    let code = json.get("code")
-        .and_then(|v| v.as_i64())
-        .unwrap_or(-1);
+    let code = json.get("code").and_then(|v| v.as_i64()).unwrap_or(-1);
 
     if code != 0 {
-        let message = json.get("message")
+        let message = json
+            .get("message")
             .and_then(|v| v.as_str())
             .unwrap_or("未知错误");
-        return Err(format!("番剧媒体信息API返回错误: {} (code: {})", message, code));
+        return Err(format!(
+            "番剧媒体信息API返回错误: {} (code: {})",
+            message, code
+        ));
     }
 
-    let result = json.get("result")
+    let result = json
+        .get("result")
         .ok_or("番剧媒体信息API响应中未找到result字段")?;
 
-    let media = result.get("media")
+    let media = result
+        .get("media")
         .ok_or("番剧媒体信息API响应中未找到media字段")?;
 
-    let season_id = media.get("season_id")
+    let season_id = media
+        .get("season_id")
         .and_then(|v| v.as_i64())
         .ok_or("无法获取 season_id")?;
 
@@ -446,8 +484,14 @@ async fn get_season_id_by_media_id(media_id: i64, client: &reqwest::Client) -> R
 }
 
 /// 通过 season_id 获取第一个剧集的 ep_id
-async fn get_first_episode_id_by_season_id(ss_id: i64, client: &reqwest::Client) -> Result<i64, String> {
-    let api_url = format!("https://api.bilibili.com/pgc/view/web/season?season_id={}", ss_id);
+async fn get_first_episode_id_by_season_id(
+    ss_id: i64,
+    client: &reqwest::Client,
+) -> Result<i64, String> {
+    let api_url = format!(
+        "https://api.bilibili.com/pgc/view/web/season?season_id={}",
+        ss_id
+    );
 
     let response = client
         .get(&api_url)
@@ -464,25 +508,26 @@ async fn get_first_episode_id_by_season_id(ss_id: i64, client: &reqwest::Client)
         .await
         .map_err(|e| format!("读取番剧信息响应失败: {}", e))?;
 
-    let json: serde_json::Value = serde_json::from_str(&json_text)
-        .map_err(|e| format!("解析番剧信息JSON失败: {}", e))?;
+    let json: serde_json::Value =
+        serde_json::from_str(&json_text).map_err(|e| format!("解析番剧信息JSON失败: {}", e))?;
 
-    let code = json.get("code")
-        .and_then(|v| v.as_i64())
-        .unwrap_or(-1);
+    let code = json.get("code").and_then(|v| v.as_i64()).unwrap_or(-1);
 
     if code != 0 {
-        let message = json.get("message")
+        let message = json
+            .get("message")
             .and_then(|v| v.as_str())
             .unwrap_or("未知错误");
         return Err(format!("番剧信息API返回错误: {} (code: {})", message, code));
     }
 
-    let result = json.get("result")
+    let result = json
+        .get("result")
         .ok_or("番剧信息API响应中未找到result字段")?;
 
     // 获取第一个剧集的 ep_id
-    let episodes = result.get("episodes")
+    let episodes = result
+        .get("episodes")
         .and_then(|v| v.as_array())
         .ok_or("未找到剧集列表")?;
 
@@ -490,7 +535,8 @@ async fn get_first_episode_id_by_season_id(ss_id: i64, client: &reqwest::Client)
         return Err("剧集列表为空".to_string());
     }
 
-    let first_ep_id = episodes[0].get("id")
+    let first_ep_id = episodes[0]
+        .get("id")
         .and_then(|v| v.as_i64())
         .ok_or("无法获取第一个剧集的 ep_id")?;
 
@@ -500,11 +546,47 @@ async fn get_first_episode_id_by_season_id(ss_id: i64, client: &reqwest::Client)
 /// 获取默认的音频质量选项
 fn get_default_audio_quality_options() -> Vec<AudioQualityOption> {
     vec![
-        AudioQualityOption { quality: 30251, description: "Hi-Res无损".to_string(), available: false, vip_only: true, login_required: false },
-        AudioQualityOption { quality: 30255, description: "杜比音效".to_string(), available: false, vip_only: true, login_required: false },
-        AudioQualityOption { quality: 30250, description: "杜比全景声".to_string(), available: false, vip_only: true, login_required: false },
-        AudioQualityOption { quality: 30280, description: "320kbps".to_string(), available: false, vip_only: false, login_required: true },
-        AudioQualityOption { quality: 30232, description: "132kbps".to_string(), available: false, vip_only: false, login_required: true },
-        AudioQualityOption { quality: 30216, description: "64kbps".to_string(), available: false, vip_only: false, login_required: false },
+        AudioQualityOption {
+            quality: 30251,
+            description: "Hi-Res无损".to_string(),
+            available: false,
+            vip_only: true,
+            login_required: false,
+        },
+        AudioQualityOption {
+            quality: 30255,
+            description: "杜比音效".to_string(),
+            available: false,
+            vip_only: true,
+            login_required: false,
+        },
+        AudioQualityOption {
+            quality: 30250,
+            description: "杜比全景声".to_string(),
+            available: false,
+            vip_only: true,
+            login_required: false,
+        },
+        AudioQualityOption {
+            quality: 30280,
+            description: "320kbps".to_string(),
+            available: false,
+            vip_only: false,
+            login_required: true,
+        },
+        AudioQualityOption {
+            quality: 30232,
+            description: "132kbps".to_string(),
+            available: false,
+            vip_only: false,
+            login_required: true,
+        },
+        AudioQualityOption {
+            quality: 30216,
+            description: "64kbps".to_string(),
+            available: false,
+            vip_only: false,
+            login_required: false,
+        },
     ]
 }

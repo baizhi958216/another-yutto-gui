@@ -57,10 +57,11 @@ impl ProcessController {
     fn suspend_threads_for_pids(pids: &std::collections::HashSet<u32>) -> Result<usize, String> {
         use windows_sys::Win32::Foundation::{CloseHandle, INVALID_HANDLE_VALUE};
         use windows_sys::Win32::System::Diagnostics::ToolHelp::{
-            CreateToolhelp32Snapshot, Thread32First, Thread32Next, TH32CS_SNAPTHREAD,
-            THREADENTRY32,
+            CreateToolhelp32Snapshot, Thread32First, Thread32Next, TH32CS_SNAPTHREAD, THREADENTRY32,
         };
-        use windows_sys::Win32::System::Threading::{OpenThread, SuspendThread, THREAD_SUSPEND_RESUME};
+        use windows_sys::Win32::System::Threading::{
+            OpenThread, SuspendThread, THREAD_SUSPEND_RESUME,
+        };
 
         unsafe {
             let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
@@ -77,11 +78,8 @@ impl ProcessController {
             if Thread32First(snapshot, &mut thread_entry) != 0 {
                 loop {
                     if pids.contains(&thread_entry.th32OwnerProcessID) {
-                        let thread_handle = OpenThread(
-                            THREAD_SUSPEND_RESUME,
-                            0,
-                            thread_entry.th32ThreadID,
-                        );
+                        let thread_handle =
+                            OpenThread(THREAD_SUSPEND_RESUME, 0, thread_entry.th32ThreadID);
                         if !thread_handle.is_null() {
                             let result = SuspendThread(thread_handle);
                             CloseHandle(thread_handle);
@@ -106,10 +104,11 @@ impl ProcessController {
     fn resume_threads_for_pids(pids: &std::collections::HashSet<u32>) -> Result<usize, String> {
         use windows_sys::Win32::Foundation::{CloseHandle, INVALID_HANDLE_VALUE};
         use windows_sys::Win32::System::Diagnostics::ToolHelp::{
-            CreateToolhelp32Snapshot, Thread32First, Thread32Next, TH32CS_SNAPTHREAD,
-            THREADENTRY32,
+            CreateToolhelp32Snapshot, Thread32First, Thread32Next, TH32CS_SNAPTHREAD, THREADENTRY32,
         };
-        use windows_sys::Win32::System::Threading::{OpenThread, ResumeThread, THREAD_SUSPEND_RESUME};
+        use windows_sys::Win32::System::Threading::{
+            OpenThread, ResumeThread, THREAD_SUSPEND_RESUME,
+        };
 
         unsafe {
             let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
@@ -126,11 +125,8 @@ impl ProcessController {
             if Thread32First(snapshot, &mut thread_entry) != 0 {
                 loop {
                     if pids.contains(&thread_entry.th32OwnerProcessID) {
-                        let thread_handle = OpenThread(
-                            THREAD_SUSPEND_RESUME,
-                            0,
-                            thread_entry.th32ThreadID,
-                        );
+                        let thread_handle =
+                            OpenThread(THREAD_SUSPEND_RESUME, 0, thread_entry.th32ThreadID);
                         if !thread_handle.is_null() {
                             let result = ResumeThread(thread_handle);
                             CloseHandle(thread_handle);
@@ -208,8 +204,8 @@ impl ProcessController {
     /// Check if a process exists and is running (Windows)
     #[cfg(windows)]
     pub fn is_process_alive(pid: u32) -> bool {
-        use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_INFORMATION};
         use windows_sys::Win32::Foundation::CloseHandle;
+        use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_INFORMATION};
 
         unsafe {
             let handle = OpenProcess(PROCESS_QUERY_INFORMATION, 0, pid);
@@ -235,8 +231,10 @@ impl ProcessController {
     /// Kill a process (used for cancel operation) (Windows)
     #[cfg(windows)]
     pub fn kill_process(pid: u32) -> Result<(), String> {
-        use windows_sys::Win32::System::Threading::{OpenProcess, TerminateProcess, PROCESS_TERMINATE};
         use windows_sys::Win32::Foundation::CloseHandle;
+        use windows_sys::Win32::System::Threading::{
+            OpenProcess, TerminateProcess, PROCESS_TERMINATE,
+        };
 
         unsafe {
             let handle = OpenProcess(PROCESS_TERMINATE, 0, pid);
