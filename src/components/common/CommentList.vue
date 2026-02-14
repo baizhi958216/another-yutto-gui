@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import type { SortType } from '@/composables/useComments'
 import type { Comment } from '@/types'
+import { X, ZoomIn, ZoomOut } from 'lucide-vue-next'
 import { ref } from 'vue'
 import Button from '@/components/common/Button.vue'
 import SmartImage from '@/components/common/SmartImage.vue'
@@ -33,6 +34,18 @@ const formatCommentTime = (timestamp: number) => formatRelativeTime(timestamp * 
 const expandedReplyIds = ref<Set<number>>(new Set())
 const replyPageMap = ref<Record<number, number>>({})
 const repliesPageSize = 10
+const previewImageUrl = ref('')
+const previewImageAlt = ref('')
+const previewZoom = ref(1)
+const maxPreviewZoom = 3
+const minPreviewZoom = 0.5
+
+interface ContentSegment {
+  type: 'text' | 'emote'
+  value?: string
+  url?: string
+  alt?: string
+}
 
 function getReplies(comment: Comment): Comment[] {
   return comment.replies || []
@@ -40,6 +53,85 @@ function getReplies(comment: Comment): Comment[] {
 
 function getEmotes(comment: Comment): { text: string, url: string }[] {
   return comment.emotes || []
+}
+
+function normalizeEmoteKey(text: string): string {
+  if (text.startsWith('[') && text.endsWith(']')) {
+    return text
+  }
+  return `[${text}]`
+}
+
+function buildEmoteMap(comment: Comment): Map<string, string> {
+  const map = new Map<string, string>()
+
+  for (const emote of getEmotes(comment)) {
+    if (!emote.url)
+      continue
+
+    const normalizedKey = normalizeEmoteKey(emote.text)
+    map.set(normalizedKey, emote.url)
+    map.set(emote.text, emote.url)
+  }
+
+  return map
+}
+
+function splitContentByEmotes(comment: Comment): ContentSegment[] {
+  const content = comment.content || ''
+  if (!content) {
+    return [{ type: 'text', value: '' }]
+  }
+
+  const emoteMap = buildEmoteMap(comment)
+  const segments: ContentSegment[] = []
+  const emotePattern = /\[[^\]\r\n]+\]/g
+  let lastIndex = 0
+
+  for (const match of content.matchAll(emotePattern)) {
+    const token = match[0]
+    const index = match.index ?? 0
+
+    if (index > lastIndex) {
+      segments.push({
+        type: 'text',
+        value: content.slice(lastIndex, index),
+      })
+    }
+
+    const emoteUrl = emoteMap.get(token)
+    if (emoteUrl) {
+      segments.push({
+        type: 'emote',
+        url: emoteUrl,
+        alt: token,
+      })
+    }
+    else {
+      segments.push({
+        type: 'text',
+        value: token,
+      })
+    }
+
+    lastIndex = index + token.length
+  }
+
+  if (lastIndex < content.length) {
+    segments.push({
+      type: 'text',
+      value: content.slice(lastIndex),
+    })
+  }
+
+  if (segments.length === 0) {
+    segments.push({
+      type: 'text',
+      value: content,
+    })
+  }
+
+  return segments
 }
 
 function getReplyCount(comment: Comment): number {
@@ -110,6 +202,26 @@ function toggleReplies(commentRpid: number): void {
     }
   }
   expandedReplyIds.value = next
+}
+
+function openImagePreview(url: string, alt: string): void {
+  previewImageUrl.value = url
+  previewImageAlt.value = alt
+  previewZoom.value = 1
+}
+
+function closeImagePreview(): void {
+  previewImageUrl.value = ''
+  previewImageAlt.value = ''
+  previewZoom.value = 1
+}
+
+function zoomInPreview(): void {
+  previewZoom.value = Math.min(maxPreviewZoom, previewZoom.value + 0.25)
+}
+
+function zoomOutPreview(): void {
+  previewZoom.value = Math.max(minPreviewZoom, previewZoom.value - 0.25)
 }
 </script>
 
@@ -186,21 +298,20 @@ function toggleReplies(commentRpid: number): void {
                 </span>
               </div>
               <!-- 评论内容 -->
-              <div class="text-sm text-text-primary whitespace-pre-wrap break-words">
-                {{ comment.content }}
-              </div>
-              <div
-                v-if="getEmotes(comment).length > 0"
-                class="mt-2 flex flex-wrap items-center gap-2"
-              >
-                <SmartImage
-                  v-for="(emote, idx) in getEmotes(comment)"
-                  :key="`${comment.rpid}-emote-${idx}`"
-                  :src="emote.url"
-                  :alt="emote.text"
-                  :title="emote.text"
-                  class="h-8 w-8 rounded object-contain"
-                />
+              <div class="text-sm text-text-primary leading-relaxed whitespace-pre-wrap break-words">
+                <template
+                  v-for="(segment, segmentIdx) in splitContentByEmotes(comment)"
+                  :key="`${comment.rpid}-segment-${segmentIdx}`"
+                >
+                  <span v-if="segment.type === 'text'">{{ segment.value }}</span>
+                  <SmartImage
+                    v-else
+                    :src="segment.url"
+                    :alt="segment.alt"
+                    :title="segment.alt"
+                    class="mx-0.5 align-text-bottom h-6 w-6 inline-block object-contain"
+                  />
+                </template>
               </div>
               <!-- 评论图片 -->
               <div v-if="comment.pictures && comment.pictures.length > 0" class="mt-2 flex flex-wrap gap-2">
@@ -208,7 +319,8 @@ function toggleReplies(commentRpid: number): void {
                   v-for="(pic, idx) in comment.pictures"
                   :key="idx"
                   :src="pic.img_src"
-                  class="rounded max-h-32 object-cover"
+                  class="rounded max-h-32 cursor-zoom-in transition-opacity object-cover hover:opacity-90"
+                  @click="openImagePreview(pic.img_src, `${comment.uname} 的评论图片`)"
                 />
               </div>
               <!-- 点赞数 -->
@@ -219,7 +331,7 @@ function toggleReplies(commentRpid: number): void {
 
               <button
                 v-if="hasReplies(comment)"
-                class="mt-2 text-xs text-primary transition-opacity hover:opacity-80"
+                class="text-xs text-primary mt-2 transition-opacity hover:opacity-80"
                 type="button"
                 @click="toggleReplies(comment.rpid)"
               >
@@ -228,7 +340,7 @@ function toggleReplies(commentRpid: number): void {
 
               <div
                 v-if="isRepliesExpanded(comment.rpid)"
-                class="mt-3 space-y-3 border-l border-bg-tertiary pl-3"
+                class="mt-3 pl-3 border-l border-bg-tertiary space-y-3"
               >
                 <div
                   v-if="getReplies(comment).length === 0"
@@ -240,13 +352,13 @@ function toggleReplies(commentRpid: number): void {
                 <div
                   v-for="reply in getPagedReplies(comment)"
                   :key="reply.rpid"
-                  class="rounded bg-bg-primary p-3"
+                  class="p-3 rounded bg-bg-primary"
                 >
                   <div class="flex gap-2 items-center">
                     <SmartImage
                       :src="reply.avatar"
                       :alt="reply.uname"
-                      class="rounded-full h-6 w-6 flex-shrink-0"
+                      class="rounded-full flex-shrink-0 h-6 w-6"
                     />
                     <span class="text-xs text-text-primary font-medium">
                       {{ reply.uname }}
@@ -258,21 +370,20 @@ function toggleReplies(commentRpid: number): void {
                       {{ reply.location }}
                     </span>
                   </div>
-                  <div class="mt-1 text-xs text-text-primary whitespace-pre-wrap break-words">
-                    {{ reply.content }}
-                  </div>
-                  <div
-                    v-if="getEmotes(reply).length > 0"
-                    class="mt-2 flex flex-wrap items-center gap-2"
-                  >
-                    <SmartImage
-                      v-for="(emote, emoteIdx) in getEmotes(reply)"
-                      :key="`${reply.rpid}-emote-${emoteIdx}`"
-                      :src="emote.url"
-                      :alt="emote.text"
-                      :title="emote.text"
-                      class="h-6 w-6 rounded object-contain"
-                    />
+                  <div class="text-xs text-text-primary leading-relaxed mt-1 whitespace-pre-wrap break-words">
+                    <template
+                      v-for="(segment, segmentIdx) in splitContentByEmotes(reply)"
+                      :key="`${reply.rpid}-segment-${segmentIdx}`"
+                    >
+                      <span v-if="segment.type === 'text'">{{ segment.value }}</span>
+                      <SmartImage
+                        v-else
+                        :src="segment.url"
+                        :alt="segment.alt"
+                        :title="segment.alt"
+                        class="mx-0.5 align-text-bottom h-5 w-5 inline-block object-contain"
+                      />
+                    </template>
                   </div>
                   <div
                     v-if="reply.pictures && reply.pictures.length > 0"
@@ -282,10 +393,11 @@ function toggleReplies(commentRpid: number): void {
                       v-for="(pic, picIdx) in reply.pictures"
                       :key="`${reply.rpid}-pic-${picIdx}`"
                       :src="pic.img_src"
-                      class="rounded max-h-24 object-cover"
+                      class="rounded max-h-24 cursor-zoom-in transition-opacity object-cover hover:opacity-90"
+                      @click="openImagePreview(pic.img_src, `${reply.uname} 的回复图片`)"
                     />
                   </div>
-                  <div class="mt-1 text-xs text-text-tertiary flex gap-1 items-center">
+                  <div class="text-xs text-text-tertiary mt-1 flex gap-1 items-center">
                     <div class="i-carbon:thumbs-up-filled mt--0.5" />
                     {{ reply.like }}
                   </div>
@@ -293,10 +405,10 @@ function toggleReplies(commentRpid: number): void {
 
                 <div
                   v-if="getReplies(comment).length > repliesPageSize"
-                  class="flex items-center gap-2 pt-1"
+                  class="pt-1 flex gap-2 items-center"
                 >
                   <button
-                    class="text-xs px-2 py-1 rounded transition-colors bg-bg-secondary text-text-primary hover:bg-bg-tertiary disabled:cursor-not-allowed disabled:opacity-50"
+                    class="text-xs text-text-primary px-2 py-1 rounded bg-bg-secondary transition-colors hover:bg-bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed"
                     :disabled="getCurrentReplyPage(comment.rpid) <= 1"
                     type="button"
                     @click="goToPrevReplyPage(comment)"
@@ -309,7 +421,7 @@ function toggleReplies(commentRpid: number): void {
                   </span>
 
                   <button
-                    class="text-xs px-2 py-1 rounded transition-colors bg-bg-secondary text-text-primary hover:bg-bg-tertiary disabled:cursor-not-allowed disabled:opacity-50"
+                    class="text-xs text-text-primary px-2 py-1 rounded bg-bg-secondary transition-colors hover:bg-bg-tertiary disabled:opacity-50 disabled:cursor-not-allowed"
                     :disabled="getCurrentReplyPage(comment.rpid) >= getReplyTotalPages(comment)"
                     type="button"
                     @click="goToNextReplyPage(comment)"
@@ -381,6 +493,53 @@ function toggleReplies(commentRpid: number): void {
         </span>
       </div>
     </div>
+
+    <Teleport to="body">
+      <Transition name="image-preview">
+        <div
+          v-if="previewImageUrl"
+          class="p-4 bg-black/85 flex items-center inset-0 justify-center fixed z-80"
+          @click="closeImagePreview"
+        >
+          <div class="flex gap-2 items-center right-4 top-4 absolute">
+            <button
+              type="button"
+              class="text-white rounded-full bg-black/50 flex h-9 w-9 transition-colors items-center justify-center hover:bg-black/70 disabled:opacity-40 disabled:cursor-not-allowed"
+              :disabled="previewZoom <= minPreviewZoom"
+              @click.stop="zoomOutPreview"
+            >
+              <ZoomOut :size="18" />
+            </button>
+            <button
+              type="button"
+              class="text-white rounded-full bg-black/50 flex h-9 w-9 transition-colors items-center justify-center hover:bg-black/70 disabled:opacity-40 disabled:cursor-not-allowed"
+              :disabled="previewZoom >= maxPreviewZoom"
+              @click.stop="zoomInPreview"
+            >
+              <ZoomIn :size="18" />
+            </button>
+            <button
+              type="button"
+              class="text-white rounded-full bg-black/50 flex h-9 w-9 transition-colors items-center justify-center hover:bg-black/70"
+              @click.stop="closeImagePreview"
+            >
+              <X :size="18" />
+            </button>
+          </div>
+
+          <div class="h-full w-full overflow-auto" @click.stop>
+            <div class="p-8 flex min-h-full min-w-full items-center justify-center">
+              <SmartImage
+                :src="previewImageUrl"
+                :alt="previewImageAlt"
+                class="max-h-[85vh] max-w-[92vw] transition-transform duration-200 object-contain"
+                :style="{ transform: `scale(${previewZoom})`, transformOrigin: 'center center' }"
+              />
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -399,5 +558,15 @@ function toggleReplies(commentRpid: number): void {
 
 .comment-list-leave-active {
   position: absolute;
+}
+
+.image-preview-enter-active,
+.image-preview-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.image-preview-enter-from,
+.image-preview-leave-to {
+  opacity: 0;
 }
 </style>
