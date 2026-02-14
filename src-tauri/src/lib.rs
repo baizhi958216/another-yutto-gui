@@ -10,8 +10,20 @@ use services::storage::Storage;
 use std::sync::Arc;
 use tauri::Manager;
 
+#[cfg(target_os = "linux")]
+fn apply_linux_webkit_workaround() {
+    const WEBKIT_DISABLE_DMABUF_RENDERER: &str = "WEBKIT_DISABLE_DMABUF_RENDERER";
+
+    if std::env::var_os(WEBKIT_DISABLE_DMABUF_RENDERER).is_none() {
+        std::env::set_var(WEBKIT_DISABLE_DMABUF_RENDERER, "1");
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(target_os = "linux")]
+    apply_linux_webkit_workaround();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
