@@ -7,19 +7,19 @@ defineOptions({
   inheritAttrs: false,
 })
 
-interface Props {
-  src?: string | null
-  alt?: string
-  referrerpolicy?: ReferrerPolicy
-  useProxyOnError?: boolean
-}
-
 const props = withDefaults(defineProps<Props>(), {
   src: '',
   alt: '',
   referrerpolicy: 'no-referrer',
   useProxyOnError: true,
 })
+
+interface Props {
+  src?: string | null
+  alt?: string
+  referrerpolicy?: ReferrerPolicy
+  useProxyOnError?: boolean
+}
 
 const proxyCache = new Map<string, Promise<string | null>>()
 
@@ -68,7 +68,8 @@ async function handleError() {
   const proxiedDataUrl = await getProxyImage(fallbackTarget)
   if (proxiedDataUrl) {
     currentSrc.value = proxiedDataUrl
-  } else {
+  }
+  else {
     console.warn('[SmartImage] Image remains unavailable after proxy fallback:', fallbackTarget)
   }
 }
