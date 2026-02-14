@@ -14,9 +14,15 @@ export interface Comment {
   location: string
   parent: number
   pictures: Picture[]
+  emotes: Emote[]
   replies?: Comment[]
 }
 
 export interface Picture {
   img_src: string
+}
+
+export interface Emote {
+  text: string
+  url: string
 }

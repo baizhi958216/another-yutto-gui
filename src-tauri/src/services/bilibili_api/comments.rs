@@ -1,4 +1,4 @@
-use crate::models::comment::{Comment, CommentResponse, ReplyItem, ReplyResponse};
+use crate::models::comment::{Comment, CommentResponse, Emote, ReplyItem, ReplyResponse};
 use crate::utils::http_client::create_bilibili_client;
 use std::collections::HashSet;
 use std::io::Write;
@@ -15,6 +15,25 @@ fn build_query(params: &[(String, String)]) -> String {
 }
 
 fn map_reply_item_to_comment(reply: &ReplyItem) -> Comment {
+    let mut emotes = reply
+        .content
+        .emote
+        .as_ref()
+        .map(|emote_map| {
+            emote_map
+                .iter()
+                .filter_map(|(key, emote_item)| {
+                    emote_item.url.as_ref().map(|url| Emote {
+                        text: emote_item.text.clone().unwrap_or_else(|| key.clone()),
+                        url: url.clone(),
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    emotes.sort_by(|a, b| a.text.cmp(&b.text));
+
     Comment {
         rpid: reply.rpid,
         oid: reply.oid,
@@ -31,6 +50,7 @@ fn map_reply_item_to_comment(reply: &ReplyItem) -> Comment {
         location: reply.reply_control.location.clone().unwrap_or_default(),
         parent: reply.parent,
         pictures: reply.content.pictures.clone().unwrap_or_default(),
+        emotes,
         replies: None,
     }
 }
@@ -38,18 +58,28 @@ fn map_reply_item_to_comment(reply: &ReplyItem) -> Comment {
 fn write_csv_header<W: Write>(csv_file: &mut W) -> Result<(), String> {
     writeln!(
         csv_file,
-        "rpid,oid,mid,uname,sex,content,avatar,ctime,like,level,location,parent,root,reply_count"
+        "rpid,oid,mid,uname,sex,content,avatar,ctime,like,level,location,parent,root,reply_count,pictures_json,emotes_json"
     )
     .map_err(|e| format!("写入CSV表头失败: {}", e))
 }
 
+fn escape_csv_field(value: &str) -> String {
+    value.replace('"', "\"\"").replace('\n', " ")
+}
+
 fn write_comment_to_csv<W: Write>(csv_file: &mut W, comment: &Comment) -> Result<(), String> {
-    let content_escaped = comment.content.replace('"', "\"\"").replace('\n', " ");
-    let location_escaped = comment.location.replace('"', "\"\"");
-    let uname_escaped = comment.uname.replace('"', "\"\"");
+    let content_escaped = escape_csv_field(&comment.content);
+    let location_escaped = escape_csv_field(&comment.location);
+    let uname_escaped = escape_csv_field(&comment.uname);
+    let pictures_json = serde_json::to_string(&comment.pictures)
+        .map_err(|e| format!("序列化评论图片失败: {}", e))?;
+    let emotes_json =
+        serde_json::to_string(&comment.emotes).map_err(|e| format!("序列化评论表情失败: {}", e))?;
+    let pictures_json_escaped = escape_csv_field(&pictures_json);
+    let emotes_json_escaped = escape_csv_field(&emotes_json);
 
     let line = format!(
-        "{},{},{},\"{}\",{},\"{}\",{},{},{},{},\"{}\",{},{},{}\n",
+        "{},{},{},\"{}\",{},\"{}\",{},{},{},{},\"{}\",{},{},{},\"{}\",\"{}\"\n",
         comment.rpid,
         comment.oid,
         comment.mid,
@@ -63,7 +93,9 @@ fn write_comment_to_csv<W: Write>(csv_file: &mut W, comment: &Comment) -> Result
         location_escaped,
         comment.parent,
         comment.root,
-        comment.reply_count
+        comment.reply_count,
+        pictures_json_escaped,
+        emotes_json_escaped
     );
 
     csv_file
@@ -231,6 +263,7 @@ async fn write_replies_for_root<W: Write>(
     use tokio::time::{sleep, Duration};
 
     let mut page_number = 1;
+    let reply_page_delay_seconds = delay_seconds.max(1);
 
     loop {
         let (replies, total_count) =
@@ -259,9 +292,7 @@ async fn write_replies_for_root<W: Write>(
 
         page_number += 1;
 
-        if delay_seconds > 0 {
-            sleep(Duration::from_secs(delay_seconds)).await;
-        }
+        sleep(Duration::from_secs(reply_page_delay_seconds)).await;
     }
 
     Ok(())

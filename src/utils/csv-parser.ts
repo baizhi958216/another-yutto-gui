@@ -48,6 +48,59 @@ function toNumber(value: string, defaultValue: number = 0): number {
   return Number.isNaN(parsed) ? defaultValue : parsed
 }
 
+function parsePicturesJson(value: string): { img_src: string }[] {
+  if (!value)
+    return []
+
+  try {
+    const parsed = JSON.parse(value)
+    if (!Array.isArray(parsed))
+      return []
+
+    return parsed
+      .map((item: unknown) => {
+        if (!item || typeof item !== 'object')
+          return null
+        const imgSrc = (item as Record<string, unknown>).img_src
+        if (typeof imgSrc !== 'string')
+          return null
+        return { img_src: imgSrc }
+      })
+      .filter((item): item is { img_src: string } => item !== null)
+  }
+  catch {
+    return []
+  }
+}
+
+function parseEmotesJson(value: string): { text: string, url: string }[] {
+  if (!value)
+    return []
+
+  try {
+    const parsed = JSON.parse(value)
+    if (!Array.isArray(parsed))
+      return []
+
+    return parsed
+      .map((item: unknown) => {
+        if (!item || typeof item !== 'object')
+          return null
+
+        const text = (item as Record<string, unknown>).text
+        const url = (item as Record<string, unknown>).url
+        if (typeof text !== 'string' || typeof url !== 'string')
+          return null
+
+        return { text, url }
+      })
+      .filter((item): item is { text: string, url: string } => item !== null)
+  }
+  catch {
+    return []
+  }
+}
+
 /**
  * Parse CSV content into Comment objects
  * Handles quoted fields and escaped quotes.
@@ -96,6 +149,8 @@ export function parseCsvComments(csvContent: string): Comment[] {
         const replyCountRaw = getField(fields, headerIndexMap, 'reply_count', 13)
         const root = rootRaw ? toNumber(rootRaw) : 0
         const replyCount = replyCountRaw ? toNumber(replyCountRaw) : 0
+        const picturesJson = getField(fields, headerIndexMap, 'pictures_json', -1)
+        const emotesJson = getField(fields, headerIndexMap, 'emotes_json', -1)
 
         parsedComments.push({
           rpid,
@@ -112,7 +167,8 @@ export function parseCsvComments(csvContent: string): Comment[] {
           current_level: currentLevel,
           location,
           parent,
-          pictures: [],
+          pictures: parsePicturesJson(picturesJson),
+          emotes: parseEmotesJson(emotesJson),
         })
       }
     }

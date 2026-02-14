@@ -1,5 +1,6 @@
 // Comment models
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Comment {
@@ -18,6 +19,7 @@ pub struct Comment {
     pub location: String,
     pub parent: i64,
     pub pictures: Vec<Picture>,
+    pub emotes: Vec<Emote>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub replies: Option<Vec<Comment>>,
 }
@@ -25,6 +27,12 @@ pub struct Comment {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Picture {
     pub img_src: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Emote {
+    pub text: String,
+    pub url: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -64,6 +72,14 @@ pub struct LevelInfo {
 pub struct Content {
     pub message: String,
     pub pictures: Option<Vec<Picture>>,
+    #[serde(default)]
+    pub emote: Option<HashMap<String, EmoteItem>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EmoteItem {
+    pub text: Option<String>,
+    pub url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

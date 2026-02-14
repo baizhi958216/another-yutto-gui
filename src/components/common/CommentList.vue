@@ -38,6 +38,10 @@ function getReplies(comment: Comment): Comment[] {
   return comment.replies || []
 }
 
+function getEmotes(comment: Comment): { text: string, url: string }[] {
+  return comment.emotes || []
+}
+
 function getReplyCount(comment: Comment): number {
   const replies = getReplies(comment)
   if (replies.length > 0) {
@@ -185,6 +189,19 @@ function toggleReplies(commentRpid: number): void {
               <div class="text-sm text-text-primary whitespace-pre-wrap break-words">
                 {{ comment.content }}
               </div>
+              <div
+                v-if="getEmotes(comment).length > 0"
+                class="mt-2 flex flex-wrap items-center gap-2"
+              >
+                <SmartImage
+                  v-for="(emote, idx) in getEmotes(comment)"
+                  :key="`${comment.rpid}-emote-${idx}`"
+                  :src="emote.url"
+                  :alt="emote.text"
+                  :title="emote.text"
+                  class="h-8 w-8 rounded object-contain"
+                />
+              </div>
               <!-- 评论图片 -->
               <div v-if="comment.pictures && comment.pictures.length > 0" class="mt-2 flex flex-wrap gap-2">
                 <SmartImage
@@ -243,6 +260,30 @@ function toggleReplies(commentRpid: number): void {
                   </div>
                   <div class="mt-1 text-xs text-text-primary whitespace-pre-wrap break-words">
                     {{ reply.content }}
+                  </div>
+                  <div
+                    v-if="getEmotes(reply).length > 0"
+                    class="mt-2 flex flex-wrap items-center gap-2"
+                  >
+                    <SmartImage
+                      v-for="(emote, emoteIdx) in getEmotes(reply)"
+                      :key="`${reply.rpid}-emote-${emoteIdx}`"
+                      :src="emote.url"
+                      :alt="emote.text"
+                      :title="emote.text"
+                      class="h-6 w-6 rounded object-contain"
+                    />
+                  </div>
+                  <div
+                    v-if="reply.pictures && reply.pictures.length > 0"
+                    class="mt-2 flex flex-wrap gap-2"
+                  >
+                    <SmartImage
+                      v-for="(pic, picIdx) in reply.pictures"
+                      :key="`${reply.rpid}-pic-${picIdx}`"
+                      :src="pic.img_src"
+                      class="rounded max-h-24 object-cover"
+                    />
                   </div>
                   <div class="mt-1 text-xs text-text-tertiary flex gap-1 items-center">
                     <div class="i-carbon:thumbs-up-filled mt--0.5" />

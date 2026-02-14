@@ -64,6 +64,10 @@ export function normalizeCommentImages(comment: Comment): Comment {
       ...picture,
       img_src: normalizeImageUrl(picture.img_src),
     })),
+    emotes: comment.emotes.map(emote => ({
+      ...emote,
+      url: normalizeImageUrl(emote.url),
+    })),
     replies: comment.replies?.map(normalizeCommentImages),
   }
 }
