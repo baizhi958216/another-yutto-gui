@@ -1,4 +1,5 @@
 // System command stubs - to be implemented
+use crate::utils::http_client::create_bilibili_client;
 use tauri_plugin_dialog::DialogExt;
 
 #[tauri::command]
@@ -127,9 +128,8 @@ pub async fn find_newest_file_in_dir(
     }
 
     let mut newest_file: Option<(String, SystemTime)> = None;
-    let threshold_time = after_timestamp.map(|ts| {
-        SystemTime::UNIX_EPOCH + std::time::Duration::from_millis(ts as u64)
-    });
+    let threshold_time = after_timestamp
+        .map(|ts| SystemTime::UNIX_EPOCH + std::time::Duration::from_millis(ts as u64));
     let allowed_exts = extensions.map(|exts| {
         exts.into_iter()
             .map(|ext| ext.trim_start_matches('.').to_ascii_lowercase())
@@ -152,7 +152,8 @@ pub async fn find_newest_file_in_dir(
             None => true,
             Some(allowed) => {
                 let ext = path.extension().and_then(|s| s.to_str());
-                ext.map(|value| allowed.contains(&value.to_ascii_lowercase())).unwrap_or(false)
+                ext.map(|value| allowed.contains(&value.to_ascii_lowercase()))
+                    .unwrap_or(false)
             }
         }
     }
@@ -209,7 +210,8 @@ pub async fn find_newest_file_in_dir(
                                 }
                                 Some((_, ref current_time)) => {
                                     if modified > *current_time {
-                                        *newest = Some((path.to_string_lossy().to_string(), modified));
+                                        *newest =
+                                            Some((path.to_string_lossy().to_string(), modified));
                                     }
                                 }
                             }
@@ -225,7 +227,13 @@ pub async fn find_newest_file_in_dir(
         Ok(())
     }
 
-    scan_dir(dir, &mut newest_file, threshold_time, &allowed_exts, &normalized_hint)?;
+    scan_dir(
+        dir,
+        &mut newest_file,
+        threshold_time,
+        &allowed_exts,
+        &normalized_hint,
+    )?;
 
     Ok(newest_file.map(|(path, _)| path))
 }
@@ -245,6 +253,82 @@ pub async fn read_csv_file(file_path: String) -> Result<String, String> {
         return Err(format!("路径不是文件: {}", file_path));
     }
 
-    fs::read_to_string(path)
-        .map_err(|e| format!("读取文件失败: {}", e))
+    fs::read_to_string(path).map_err(|e| format!("读取文件失败: {}", e))
+}
+
+fn normalize_remote_image_url(url: &str) -> String {
+    let trimmed = url.trim();
+    if trimmed.is_empty() {
+        return String::new();
+    }
+
+    if trimmed.starts_with("//") {
+        return format!("https:{}", trimmed);
+    }
+
+    if trimmed.starts_with("http://") {
+        return format!("https://{}", &trimmed["http://".len()..]);
+    }
+
+    if trimmed.starts_with("http://") || trimmed.starts_with("https://") {
+        return trimmed.to_string();
+    }
+
+    if trimmed
+        .chars()
+        .next()
+        .map(|ch| ch.is_ascii_alphanumeric())
+        .unwrap_or(false)
+        && trimmed.contains('.')
+        && (trimmed.contains('/') || trimmed.contains('?'))
+        && !trimmed.contains(' ')
+    {
+        return format!("https://{}", trimmed);
+    }
+
+    trimmed.to_string()
+}
+
+#[tauri::command]
+pub async fn fetch_image_data_url(url: String) -> Result<String, String> {
+    use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
+    use base64::Engine;
+    use reqwest::header::{HeaderValue, ORIGIN, REFERER};
+
+    let normalized_url = normalize_remote_image_url(&url);
+    if !(normalized_url.starts_with("http://") || normalized_url.starts_with("https://")) {
+        return Err(format!("不支持的图片 URL: {}", normalized_url));
+    }
+
+    let client = create_bilibili_client()?;
+    let response = client
+        .get(&normalized_url)
+        .header(
+            REFERER,
+            HeaderValue::from_static("https://www.bilibili.com/"),
+        )
+        .header(ORIGIN, HeaderValue::from_static("https://www.bilibili.com"))
+        .send()
+        .await
+        .map_err(|e| format!("图片请求失败: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("图片请求失败: {}", response.status()));
+    }
+
+    let content_type = response
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.split(';').next())
+        .unwrap_or("image/jpeg")
+        .to_string();
+
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("读取图片数据失败: {}", e))?;
+
+    let encoded = BASE64_STANDARD.encode(bytes);
+    Ok(format!("data:{};base64,{}", content_type, encoded))
 }

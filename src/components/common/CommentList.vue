@@ -2,6 +2,7 @@
 import type { SortType } from '@/composables/useComments'
 import type { Comment } from '@/types'
 import Button from '@/components/common/Button.vue'
+import SmartImage from '@/components/common/SmartImage.vue'
 import { formatRelativeTime } from '@/utils/format'
 
 interface Props {
@@ -80,12 +81,11 @@ const formatCommentTime = (timestamp: number) => formatRelativeTime(timestamp * 
         >
           <div class="flex gap-3">
             <!-- 用户头像 -->
-            <img
+            <SmartImage
               :src="comment.avatar"
               :alt="comment.uname"
               class="rounded-full flex-shrink-0 h-10 w-10"
-              referrerpolicy="no-referrer"
-            >
+            />
             <div class="flex-1 min-w-0">
               <!-- 用户信息 -->
               <div class="mb-2 flex gap-2 items-center">
@@ -108,13 +108,12 @@ const formatCommentTime = (timestamp: number) => formatRelativeTime(timestamp * 
               </div>
               <!-- 评论图片 -->
               <div v-if="comment.pictures && comment.pictures.length > 0" class="mt-2 flex flex-wrap gap-2">
-                <img
+                <SmartImage
                   v-for="(pic, idx) in comment.pictures"
                   :key="idx"
                   :src="pic.img_src"
                   class="rounded max-h-32 object-cover"
-                  referrerpolicy="no-referrer"
-                >
+                />
               </div>
               <!-- 点赞数 -->
               <div class="text-xs text-text-tertiary mt-2 flex gap-1 w-fit items-center justify-center">

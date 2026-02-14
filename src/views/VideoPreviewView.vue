@@ -16,6 +16,7 @@ import { useDownloadStore } from '@/stores/download'
 import { useHistoryStore } from '@/stores/history'
 import { useTitleBarStore } from '@/stores/titleBar'
 import { formatFileSize, formatRelativeTime } from '@/utils/format'
+import { normalizeImageUrl } from '@/utils/image'
 import { formatAudioQuality, formatVideoQuality } from '@/utils/quality'
 
 import 'plyr/dist/plyr.css'
@@ -271,7 +272,7 @@ async function handleOpenFolder() {
         v-if="isAudioOnly"
         :src="videoUrl"
         :title="entry.title"
-        :cover="entry.thumbnail"
+        :cover="normalizeImageUrl(entry.thumbnail)"
       />
 
       <!-- 视频播放器 -->

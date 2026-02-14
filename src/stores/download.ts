@@ -2,6 +2,7 @@ import type { DownloadConfig, VideoInfo } from '@/types'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { ApiService } from '@/services/api'
+import { normalizeVideoInfoImages } from '@/utils/image'
 import { normalizeBilibiliUrl, validateBilibiliUrl } from '@/utils/validate'
 import { useAuthStore } from './auth'
 import { useSettingsStore } from './settings'
@@ -37,7 +38,8 @@ export const useDownloadStore = defineStore('download', () => {
         await authStore.checkVipStatus()
       }
       console.log('[DownloadStore] Fetching video info with isVip:', authStore.isVip, 'sessdata present:', !!authStore.sessdata)
-      videoInfo.value = await ApiService.fetchVideoInfo(normalizedUrl, authStore.isVip, authStore.sessdata || undefined)
+      const fetchedVideoInfo = await ApiService.fetchVideoInfo(normalizedUrl, authStore.isVip, authStore.sessdata || undefined)
+      videoInfo.value = normalizeVideoInfoImages(fetchedVideoInfo)
       currentUrl.value = normalizedUrl
 
       // 自动全选所有剧集

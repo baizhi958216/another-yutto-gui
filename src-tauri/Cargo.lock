@@ -57,6 +57,7 @@ dependencies = [
 name = "another-yutto-gui"
 version = "0.2.0"
 dependencies = [
+ "base64 0.22.1",
  "encoding_rs",
  "hex",
  "hostname",

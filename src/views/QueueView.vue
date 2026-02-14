@@ -4,6 +4,7 @@ import { computed } from 'vue'
 import Button from '@/components/common/Button.vue'
 import Card from '@/components/common/Card.vue'
 import ProgressBar from '@/components/common/ProgressBar.vue'
+import SmartImage from '@/components/common/SmartImage.vue'
 import { useDownload } from '@/composables/useDownload'
 import { useQueueStore } from '@/stores/queue'
 import { formatDownloadProgress, formatEta, formatSpeed, generateDownloadTags } from '@/utils/format'
@@ -114,13 +115,12 @@ function getEtaInfo(task: any): string {
       >
         <div class="flex gap-4">
           <!-- 缩略图 -->
-          <img
+          <SmartImage
             v-if="task.videoInfo?.thumbnail"
             :src="task.videoInfo.thumbnail"
             :alt="task.videoInfo.title"
             class="rounded h-16 w-24 object-cover"
-            referrerpolicy="no-referrer"
-          >
+          />
           <div v-else class="rounded-2xl bg-bg-tertiary flex h-16 w-24 items-center justify-center">
             <Video :size="24" class="text-text-tertiary" />
           </div>

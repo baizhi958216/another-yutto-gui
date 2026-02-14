@@ -2,6 +2,7 @@ import type { Comment } from '@/types'
 import { computed, ref } from 'vue'
 import { readCsvFile } from '@/services/tauri'
 import { parseCsvComments } from '@/utils/csv-parser'
+import { normalizeCommentImages } from '@/utils/image'
 
 export type SortType = 'time' | 'likes'
 
@@ -91,7 +92,7 @@ export function useComments() {
 
     try {
       const csvContent = await readCsvFile(commentFilePath)
-      comments.value = parseCsvComments(csvContent)
+      comments.value = parseCsvComments(csvContent).map(normalizeCommentImages)
       totalComments.value = comments.value.length
       currentPage.value = 1 // Reset to first page
       hasCommentFile.value = true

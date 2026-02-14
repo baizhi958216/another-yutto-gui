@@ -2,6 +2,7 @@ import type { HistoryEntry } from '@/types'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { addToHistory, clearHistory as clearHistoryBackend, deleteHistoryEntry, getHistory } from '@/services/tauri'
+import { normalizeHistoryEntryImages } from '@/utils/image'
 
 export const useHistoryStore = defineStore('history', () => {
   // State
@@ -51,7 +52,7 @@ export const useHistoryStore = defineStore('history', () => {
     try {
       isLoading.value = true
       const history = await getHistory()
-      entries.value = history
+      entries.value = history.map(normalizeHistoryEntryImages)
     }
     catch (error) {
       console.error('Failed to load history:', error)
@@ -66,10 +67,11 @@ export const useHistoryStore = defineStore('history', () => {
       // 检查是否已存在
       const exists = entries.value.some(e => e.id === entry.id)
       if (!exists) {
+        const normalizedEntry = normalizeHistoryEntryImages(entry)
         // 保存到后端
-        await addToHistory(entry)
+        await addToHistory(normalizedEntry)
         // 添加到本地状态
-        entries.value.unshift(entry)
+        entries.value.unshift(normalizedEntry)
       }
     }
     catch (error) {

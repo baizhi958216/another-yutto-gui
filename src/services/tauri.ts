@@ -322,6 +322,20 @@ export async function readCsvFile(filePath: string): Promise<string> {
 }
 
 /**
+ * 通过后端代理获取图片并返回 data URL
+ * 用于绕过 WebView 跨平台差异导致的 403 防盗链问题
+ */
+export async function fetchImageDataUrl(url: string): Promise<string> {
+  try {
+    return await invoke<string>('fetch_image_data_url', { url })
+  }
+  catch (error) {
+    console.error('Failed to fetch image data URL:', error)
+    throw error
+  }
+}
+
+/**
  * 下载评论到指定文件
  * @param aid 视频 AID
  * @param csvFilePath CSV文件路径

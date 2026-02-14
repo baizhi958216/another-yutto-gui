@@ -6,6 +6,7 @@ import Button from '@/components/common/Button.vue'
 import EpisodeSelector from '@/components/common/EpisodeSelector.vue'
 import Input from '@/components/common/Input.vue'
 import Select from '@/components/common/Select.vue'
+import SmartImage from '@/components/common/SmartImage.vue'
 import Tooltip from '@/components/common/Tooltip.vue'
 import { useDownload } from '@/composables/useDownload'
 import { useQualityOptions } from '@/composables/useQualityOptions'
@@ -169,12 +170,11 @@ onMounted(() => {
       <div v-if="downloadStore.videoInfo" class="p-4 border border-border-primary rounded bg-bg-secondary shadow-sm transition-all hover:shadow-lg">
         <!-- 收藏夹用户信息展示 -->
         <div v-if="isFavorite" class="flex gap-4">
-          <img
+          <SmartImage
             :src="downloadStore.videoInfo.owner.face"
             :alt="downloadStore.videoInfo.owner.name"
             class="rounded-full h-20 w-20 object-cover"
-            referrerpolicy="no-referrer"
-          >
+          />
           <div class="flex-1">
             <h3 class="text-lg text-text-primary font-semibold mb-1">
               {{ downloadStore.videoInfo.owner.name }}
@@ -197,12 +197,11 @@ onMounted(() => {
         </div>
         <!-- 普通视频信息展示 -->
         <div v-else class="flex gap-4">
-          <img
+          <SmartImage
             :src="downloadStore.videoInfo.thumbnail"
             :alt="downloadStore.videoInfo.title"
             class="rounded h-20 w-32 object-cover"
-            referrerpolicy="no-referrer"
-          >
+          />
           <div class="flex-1">
             <h3 class="text-lg text-text-primary font-semibold mb-2">
               {{ downloadStore.videoInfo.title }}

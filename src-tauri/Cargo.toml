@@ -38,6 +38,7 @@ url = "2"
 md5 = "0.7"
 urlencoding = "2"
 tauri-plugin-shell = "2.0.0"
+base64 = "0.22"
 
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.29", features = ["signal"] }

@@ -1,12 +1,16 @@
 <script lang="ts" setup>
 import { Pause, Play, Volume2, VolumeX } from 'lucide-vue-next'
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import SmartImage from '@/components/common/SmartImage.vue'
+import { normalizeImageUrl } from '@/utils/image'
 
 const props = defineProps<{
   src: string
   title?: string
   cover?: string
 }>()
+
+const normalizedCover = computed(() => normalizeImageUrl(props.cover))
 
 const audioElement = ref<HTMLAudioElement | null>(null)
 const canvasElement = ref<HTMLCanvasElement | null>(null)
@@ -401,21 +405,22 @@ onUnmounted(() => {
     <!-- 封面和可视化区域 -->
     <div class="flex w-full aspect-16/9 items-center justify-center relative overflow-hidden from-bg-tertiary to-bg-secondary bg-gradient-to-br">
       <!-- 背景模糊效果 -->
-      <div
-        v-if="cover"
-        class="opacity-60 absolute bg-cover bg-center blur-40px brightness-40 -inset-5"
-        :style="{ backgroundImage: `url(${cover})` }"
+      <SmartImage
+        v-if="normalizedCover"
+        :src="normalizedCover"
+        alt=""
+        class="opacity-60 h-full w-full scale-110 absolute object-cover blur-40px brightness-40"
+        aria-hidden="true"
       />
 
       <!-- 封面图片 -->
       <div class="h-40 w-40 absolute z-1">
-        <img
-          v-if="cover"
-          :src="cover"
+        <SmartImage
+          v-if="normalizedCover"
+          :src="normalizedCover"
           :alt="title"
           class="rounded-full h-full w-full shadow-[0_8px_32px_rgba(0,0,0,0.3)] object-cover"
-          referrerpolicy="no-referrer"
-        >
+        />
         <div v-else class="rounded-full bg-bg-tertiary flex h-full w-full shadow-[0_8px_32px_rgba(0,0,0,0.3)] items-center justify-center">
           <div class="i-carbon:music text-8xl text-text-tertiary" />
         </div>

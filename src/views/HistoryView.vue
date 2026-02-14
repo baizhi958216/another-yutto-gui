@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import Button from '@/components/common/Button.vue'
 import Card from '@/components/common/Card.vue'
 import Input from '@/components/common/Input.vue'
+import SmartImage from '@/components/common/SmartImage.vue'
 import { useHistoryStore } from '@/stores/history'
 import { formatFileSize, formatRelativeTime, generateDownloadTags } from '@/utils/format'
 
@@ -77,11 +78,11 @@ function handlePreview(id: string) {
       >
         <div class="flex gap-4">
           <!-- 缩略图 -->
-          <img
+          <SmartImage
             :src="entry.thumbnail"
             :alt="entry.title"
             class="rounded h-20 w-32 object-cover"
-          >
+          />
 
           <!-- 信息 -->
           <div class="flex-1 min-w-0">
