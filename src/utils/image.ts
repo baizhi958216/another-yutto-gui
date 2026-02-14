@@ -64,5 +64,6 @@ export function normalizeCommentImages(comment: Comment): Comment {
       ...picture,
       img_src: normalizeImageUrl(picture.img_src),
     })),
+    replies: comment.replies?.map(normalizeCommentImages),
   }
 }

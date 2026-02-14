@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import type { SortType } from '@/composables/useComments'
 import type { Comment } from '@/types'
+import { ref } from 'vue'
 import Button from '@/components/common/Button.vue'
 import SmartImage from '@/components/common/SmartImage.vue'
 import { formatRelativeTime } from '@/utils/format'
@@ -28,6 +29,84 @@ const emit = defineEmits<{
 
 // 将秒级时间戳转换为毫秒级时间戳
 const formatCommentTime = (timestamp: number) => formatRelativeTime(timestamp * 1000)
+
+const expandedReplyIds = ref<Set<number>>(new Set())
+const replyPageMap = ref<Record<number, number>>({})
+const repliesPageSize = 10
+
+function getReplies(comment: Comment): Comment[] {
+  return comment.replies || []
+}
+
+function getReplyCount(comment: Comment): number {
+  const replies = getReplies(comment)
+  if (replies.length > 0) {
+    return replies.length
+  }
+  return comment.reply_count || 0
+}
+
+function hasReplies(comment: Comment): boolean {
+  return getReplyCount(comment) > 0
+}
+
+function isRepliesExpanded(commentRpid: number): boolean {
+  return expandedReplyIds.value.has(commentRpid)
+}
+
+function getReplyTotalPages(comment: Comment): number {
+  const total = getReplies(comment).length
+  return Math.max(1, Math.ceil(total / repliesPageSize))
+}
+
+function getCurrentReplyPage(commentRpid: number): number {
+  return replyPageMap.value[commentRpid] || 1
+}
+
+function setCurrentReplyPage(commentRpid: number, page: number): void {
+  replyPageMap.value = {
+    ...replyPageMap.value,
+    [commentRpid]: page,
+  }
+}
+
+function getPagedReplies(comment: Comment): Comment[] {
+  const replies = getReplies(comment)
+  const totalPages = getReplyTotalPages(comment)
+  const currentPage = Math.min(getCurrentReplyPage(comment.rpid), totalPages)
+  const start = (currentPage - 1) * repliesPageSize
+  const end = start + repliesPageSize
+  return replies.slice(start, end)
+}
+
+function goToPrevReplyPage(comment: Comment): void {
+  const currentPage = getCurrentReplyPage(comment.rpid)
+  if (currentPage > 1) {
+    setCurrentReplyPage(comment.rpid, currentPage - 1)
+  }
+}
+
+function goToNextReplyPage(comment: Comment): void {
+  const currentPage = getCurrentReplyPage(comment.rpid)
+  const totalPages = getReplyTotalPages(comment)
+  if (currentPage < totalPages) {
+    setCurrentReplyPage(comment.rpid, currentPage + 1)
+  }
+}
+
+function toggleReplies(commentRpid: number): void {
+  const next = new Set(expandedReplyIds.value)
+  if (next.has(commentRpid)) {
+    next.delete(commentRpid)
+  }
+  else {
+    next.add(commentRpid)
+    if (!replyPageMap.value[commentRpid]) {
+      setCurrentReplyPage(commentRpid, 1)
+    }
+  }
+  expandedReplyIds.value = next
+}
 </script>
 
 <template>
@@ -119,6 +198,84 @@ const formatCommentTime = (timestamp: number) => formatRelativeTime(timestamp * 
               <div class="text-xs text-text-tertiary mt-2 flex gap-1 w-fit items-center justify-center">
                 <div class="i-carbon:thumbs-up-filled mt--0.5" />
                 {{ comment.like }}
+              </div>
+
+              <button
+                v-if="hasReplies(comment)"
+                class="mt-2 text-xs text-primary transition-opacity hover:opacity-80"
+                type="button"
+                @click="toggleReplies(comment.rpid)"
+              >
+                {{ isRepliesExpanded(comment.rpid) ? '收起回复' : `查看回复 (${getReplyCount(comment)})` }}
+              </button>
+
+              <div
+                v-if="isRepliesExpanded(comment.rpid)"
+                class="mt-3 space-y-3 border-l border-bg-tertiary pl-3"
+              >
+                <div
+                  v-if="getReplies(comment).length === 0"
+                  class="text-xs text-text-tertiary"
+                >
+                  暂无可展示的回复
+                </div>
+
+                <div
+                  v-for="reply in getPagedReplies(comment)"
+                  :key="reply.rpid"
+                  class="rounded bg-bg-primary p-3"
+                >
+                  <div class="flex gap-2 items-center">
+                    <SmartImage
+                      :src="reply.avatar"
+                      :alt="reply.uname"
+                      class="rounded-full h-6 w-6 flex-shrink-0"
+                    />
+                    <span class="text-xs text-text-primary font-medium">
+                      {{ reply.uname }}
+                    </span>
+                    <span class="text-xs text-text-tertiary">
+                      {{ formatCommentTime(reply.ctime) }}
+                    </span>
+                    <span v-if="reply.location" class="text-xs text-text-tertiary">
+                      {{ reply.location }}
+                    </span>
+                  </div>
+                  <div class="mt-1 text-xs text-text-primary whitespace-pre-wrap break-words">
+                    {{ reply.content }}
+                  </div>
+                  <div class="mt-1 text-xs text-text-tertiary flex gap-1 items-center">
+                    <div class="i-carbon:thumbs-up-filled mt--0.5" />
+                    {{ reply.like }}
+                  </div>
+                </div>
+
+                <div
+                  v-if="getReplies(comment).length > repliesPageSize"
+                  class="flex items-center gap-2 pt-1"
+                >
+                  <button
+                    class="text-xs px-2 py-1 rounded transition-colors bg-bg-secondary text-text-primary hover:bg-bg-tertiary disabled:cursor-not-allowed disabled:opacity-50"
+                    :disabled="getCurrentReplyPage(comment.rpid) <= 1"
+                    type="button"
+                    @click="goToPrevReplyPage(comment)"
+                  >
+                    上一页
+                  </button>
+
+                  <span class="text-xs text-text-tertiary">
+                    第 {{ getCurrentReplyPage(comment.rpid) }} / {{ getReplyTotalPages(comment) }} 页
+                  </span>
+
+                  <button
+                    class="text-xs px-2 py-1 rounded transition-colors bg-bg-secondary text-text-primary hover:bg-bg-tertiary disabled:cursor-not-allowed disabled:opacity-50"
+                    :disabled="getCurrentReplyPage(comment.rpid) >= getReplyTotalPages(comment)"
+                    type="button"
+                    @click="goToNextReplyPage(comment)"
+                  >
+                    下一页
+                  </button>
+                </div>
               </div>
             </div>
           </div>

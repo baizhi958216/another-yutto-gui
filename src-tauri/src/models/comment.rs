@@ -6,16 +6,20 @@ pub struct Comment {
     pub rpid: i64,
     pub oid: i64,
     pub mid: i64,
+    pub root: i64,
     pub uname: String,
     pub avatar: String,
     pub sex: String,
     pub content: String,
     pub ctime: i64,
     pub like: i64,
+    pub reply_count: i64,
     pub current_level: i32,
     pub location: String,
     pub parent: i64,
     pub pictures: Vec<Picture>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub replies: Option<Vec<Comment>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,11 +32,16 @@ pub struct ReplyItem {
     pub rpid: i64,
     pub oid: i64,
     pub mid: i64,
+    #[serde(default)]
+    pub root: i64,
     pub parent: i64,
+    #[serde(default)]
+    pub count: i64,
     pub ctime: i64,
     pub like: i64,
     pub member: Member,
     pub content: Content,
+    #[serde(default)]
     pub reply_control: ReplyControl,
     pub replies: Option<Vec<ReplyItem>>,
 }
@@ -63,6 +72,15 @@ pub struct ReplyControl {
     pub time_desc: Option<String>,
 }
 
+impl Default for ReplyControl {
+    fn default() -> Self {
+        Self {
+            location: None,
+            time_desc: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Cursor {
     pub is_begin: bool,
@@ -75,7 +93,8 @@ pub struct Cursor {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PaginationReply {
-    pub next_offset: String,
+    #[serde(default)]
+    pub next_offset: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -90,4 +109,24 @@ pub struct CommentData {
     pub cursor: Cursor,
     pub replies: Option<Vec<ReplyItem>>,
     pub top_replies: Option<Vec<ReplyItem>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReplyResponse {
+    pub code: i32,
+    pub message: String,
+    pub data: Option<ReplyData>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReplyData {
+    pub page: ReplyPage,
+    pub replies: Option<Vec<ReplyItem>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReplyPage {
+    pub num: i32,
+    pub size: i32,
+    pub count: i64,
 }

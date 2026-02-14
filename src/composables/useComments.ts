@@ -6,7 +6,20 @@ import { normalizeCommentImages } from '@/utils/image'
 
 export type SortType = 'time' | 'likes'
 
+function getRootId(comment: Comment): number {
+  if (comment.root > 0) {
+    return comment.root
+  }
+
+  if (comment.parent > 0) {
+    return comment.parent
+  }
+
+  return comment.rpid
+}
+
 export function useComments() {
+  // Flat comments loaded from CSV (both top-level comments and replies).
   const comments = ref<Comment[]>([])
   const loadingComments = ref(false)
   const commentsError = ref<string | null>(null)
@@ -18,10 +31,37 @@ export function useComments() {
   // 分页相关状态
   const currentPage = ref(1)
   const pageSize = 20
-  const totalComments = ref(0)
+
+  const topLevelComments = computed(() => {
+    return comments.value.filter(comment => comment.parent === 0)
+  })
+
+  const repliesByRoot = computed(() => {
+    const map = new Map<number, Comment[]>()
+
+    for (const comment of comments.value) {
+      if (comment.parent === 0)
+        continue
+
+      const rootId = getRootId(comment)
+      const existingReplies = map.get(rootId)
+      if (existingReplies) {
+        existingReplies.push(comment)
+      }
+      else {
+        map.set(rootId, [comment])
+      }
+    }
+
+    for (const [rootId, replies] of map.entries()) {
+      map.set(rootId, [...replies].sort((a, b) => a.ctime - b.ctime))
+    }
+
+    return map
+  })
 
   const sortedComments = computed(() => {
-    const sorted = [...comments.value]
+    const sorted = [...topLevelComments.value]
     if (sortType.value === 'time') {
       // 按时间降序排序（最新的在前）
       return sorted.sort((a, b) => b.ctime - a.ctime)
@@ -32,10 +72,16 @@ export function useComments() {
     }
   })
 
+  const totalComments = computed(() => sortedComments.value.length)
+
   const paginatedComments = computed(() => {
     const start = (currentPage.value - 1) * pageSize
     const end = start + pageSize
-    return sortedComments.value.slice(start, end)
+
+    return sortedComments.value.slice(start, end).map(comment => ({
+      ...comment,
+      replies: repliesByRoot.value.get(comment.rpid) || [],
+    }))
   })
 
   const totalPages = computed(() => {
@@ -93,7 +139,6 @@ export function useComments() {
     try {
       const csvContent = await readCsvFile(commentFilePath)
       comments.value = parseCsvComments(csvContent).map(normalizeCommentImages)
-      totalComments.value = comments.value.length
       currentPage.value = 1 // Reset to first page
       hasCommentFile.value = true
     }
