@@ -1,6 +1,6 @@
 [package]
 name = "another-yutto-gui"
-version = "0.2.2"
+version = "0.2.3"
 description = "Another Yutto GUI"
 authors = ["baizhi958216"]
 edition = "2021"

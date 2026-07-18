@@ -28,7 +28,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -39,13 +39,13 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -53,7 +53,18 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install frontend dependencies
-        run: npm ci
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            if npm ci; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "npm ci failed (attempt $attempt/3); retrying in 15 seconds..."
+              sleep 15
+            fi
+          done
+          exit 1
 
       - name: Download FFmpeg
         run: node build-scripts/download-ffmpeg.js
@@ -78,6 +89,11 @@ jobs:
           releaseName: Another Yutto GUI v__VERSION__
           releaseBody: |
             See the assets below to download the installer for your platform.
+
+            The macOS build uses free ad-hoc signing. If macOS blocks the first launch,
+            right-click the app and choose Open, or run:
+
+            `xattr -dr com.apple.quarantine "/Applications/Another Yutto GUI.app"`
           releaseDraft: false
           prerelease: false
           args: --bundles ${{ matrix.bundles }}
