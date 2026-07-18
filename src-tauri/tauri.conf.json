@@ -10,12 +10,16 @@
     "frontendDist": "../dist"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
         "title": "Another Yutto GUI",
         "width": 960,
         "height": 720,
-        "decorations": false
+        "decorations": false,
+        "transparent": true,
+        "backgroundColor": [0, 0, 0, 0],
+        "shadow": true
       }
     ],
     "security": {

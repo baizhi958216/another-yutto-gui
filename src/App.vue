@@ -75,7 +75,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="text-text-primary bg-bg-primary flex h-screen overflow-hidden">
+  <div id="app-window" class="text-text-primary bg-bg-primary flex h-screen overflow-hidden">
     <Sidebar />
     <div class="flex flex-1 flex-col min-w-0">
       <TitleBar />
@@ -148,10 +148,29 @@ onMounted(async () => {
   box-sizing: border-box;
 }
 
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
 body {
   font-family: 'Quicksand', sans-serif;
-  background: var(--color-bg-primary);
   color: var(--color-text-primary);
+}
+
+#app-window {
+  --window-radius: 12px;
+
+  background: var(--color-bg-primary);
+  border-radius: var(--window-radius);
+  clip-path: inset(0 round var(--window-radius));
+  isolation: isolate;
+  overflow: hidden;
 }
 
 ::view-transition-old(root),
