@@ -4,8 +4,6 @@ on:
   push:
     tags:
       - "v*"
-    branches:
-      - dev
 
 permissions:
   contents: write
@@ -17,6 +15,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - name: macOS
+            platform: macos-latest
+            bundles: dmg
+          - name: Linux
+            platform: ubuntu-22.04
+            bundles: deb,appimage
           - name: Windows
             platform: windows-latest
             bundles: msi,nsis
