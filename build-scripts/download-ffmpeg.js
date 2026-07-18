@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable node/prefer-global/process */
 
+import { spawn } from 'node:child_process'
 import { chmodSync, createWriteStream, existsSync, mkdirSync, renameSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { pipeline } from 'node:stream/promises'
@@ -18,6 +19,8 @@ const MARTIN_RIEDL_BASE_URL = 'https://ffmpeg.martin-riedl.de/download/macos'
 
 const PLATFORMS = [
   {
+    platform: 'win32',
+    arch: 'x64',
     url: `${BTBN_BASE_URL}/ffmpeg-N-122607-g50bcc96a75-win64-gpl.zip`,
     targetName: 'ffmpeg-x86_64-pc-windows-msvc.exe',
     archivePath: 'ffmpeg-N-122607-g50bcc96a75-win64-gpl/bin/ffmpeg.exe',
@@ -25,6 +28,8 @@ const PLATFORMS = [
     needsExtraction: true,
   },
   {
+    platform: 'linux',
+    arch: 'x64',
     url: `${BTBN_BASE_URL}/ffmpeg-N-122607-g50bcc96a75-linux64-gpl.tar.xz`,
     targetName: 'ffmpeg-x86_64-unknown-linux-gnu',
     archivePath: 'ffmpeg-N-122607-g50bcc96a75-linux64-gpl/bin/ffmpeg',
@@ -32,6 +37,8 @@ const PLATFORMS = [
     needsExtraction: true,
   },
   {
+    platform: 'darwin',
+    arch: 'x64',
     url: `${MARTIN_RIEDL_BASE_URL}/amd64/1767299902_N-122320-g38e89fe502/ffmpeg.zip`,
     targetName: 'ffmpeg-x86_64-apple-darwin',
     archivePath: 'ffmpeg',
@@ -39,6 +46,8 @@ const PLATFORMS = [
     needsExtraction: true,
   },
   {
+    platform: 'darwin',
+    arch: 'arm64',
     url: `${MARTIN_RIEDL_BASE_URL}/arm64/1769883472_N-122609-g364d5dda91/ffmpeg.zip`,
     targetName: 'ffmpeg-aarch64-apple-darwin',
     archivePath: 'ffmpeg',
@@ -66,13 +75,19 @@ async function extractTarXz(archivePath, targetFile, outputPath) {
   mkdirSync(tempDir, { recursive: true })
 
   try {
-    // Use decompress to handle tar.xz
-    const decompress = (await import('decompress')).default
-    const decompressTarxz = (await import('decompress-tarxz')).default
-
-    await decompress(archivePath, tempDir, {
-      plugins: [decompressTarxz()],
-      filter: file => file.path === targetFile,
+    await new Promise((resolve, reject) => {
+      const child = spawn('tar', ['-xJf', archivePath, '-C', tempDir, targetFile], {
+        stdio: 'inherit',
+      })
+      child.on('error', reject)
+      child.on('close', (code) => {
+        if (code === 0) {
+          resolve()
+        }
+        else {
+          reject(new Error(`tar exited with code ${code}`))
+        }
+      })
     })
 
     // Move the extracted file to the target location
@@ -184,8 +199,16 @@ async function main() {
     mkdirSync(BINARIES_DIR, { recursive: true })
   }
 
-  // Download and extract for each platform
-  for (const platform of PLATFORMS) {
+  const currentPlatforms = PLATFORMS.filter(
+    target => target.platform === process.platform && target.arch === process.arch,
+  )
+
+  if (currentPlatforms.length === 0) {
+    throw new Error(`Unsupported platform: ${process.platform}-${process.arch}`)
+  }
+
+  // Download and extract only the binary needed by the current runner.
+  for (const platform of currentPlatforms) {
     try {
       await downloadAndExtractFFmpeg(platform)
     }

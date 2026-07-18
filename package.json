@@ -35,8 +35,6 @@
     "@unocss/preset-icons": "^66.5.12",
     "@unocss/preset-uno": "^66.5.12",
     "@vitejs/plugin-vue": "^5.2.1",
-    "decompress": "^4.2.1",
-    "decompress-tarxz": "^3.0.0",
     "eslint": "^9.39.2",
     "eslint-plugin-format": "^1.2.0",
     "sass-embedded": "^1.97.2",
