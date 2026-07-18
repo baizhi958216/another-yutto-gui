@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { isTauri } from '@tauri-apps/api/core'
 import { onMounted, watch } from 'vue'
 import ToastContainer from '@/components/common/ToastContainer.vue'
 import Sidebar from '@/components/layout/Sidebar.vue'
@@ -12,6 +13,7 @@ import { useSettingsStore } from '@/stores/settings'
 const authStore = useAuthStore()
 const downloadStore = useDownloadStore()
 const settingsStore = useSettingsStore()
+const runningInTauri = isTauri()
 useTaskPolling(1000)
 
 watch(
@@ -59,6 +61,9 @@ watch(
 watch(
   () => settingsStore.settings.maxConcurrentDownloads,
   (maxConcurrent) => {
+    if (!runningInTauri)
+      return
+
     const parsed = Number(maxConcurrent)
     const normalized = Number.isFinite(parsed) ? Math.max(1, Math.round(parsed)) : 1
     void setMaxConcurrentDownloads(normalized).catch((error) => {
@@ -70,7 +75,9 @@ watch(
 
 // Load auth state on app mount
 onMounted(async () => {
-  await authStore.loadSessdata()
+  if (runningInTauri) {
+    await authStore.loadSessdata()
+  }
 })
 </script>
 

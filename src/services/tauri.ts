@@ -1,6 +1,6 @@
 import type { Comment, DownloadConfig, HistoryEntry, VideoInfo } from '@/types'
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke, isTauri } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 import { open as openUrl } from '@tauri-apps/plugin-shell'
 
@@ -107,6 +107,9 @@ export async function setMaxConcurrentDownloads(maxConcurrent: number): Promise<
  * @returns 选择的文件夹路径，如果取消则返回 null
  */
 export async function selectFolder(): Promise<string | null> {
+  if (!isTauri())
+    return null
+
   try {
     const result = await open({
       directory: true,
@@ -125,6 +128,9 @@ export async function selectFolder(): Promise<string | null> {
  * @returns 选择的文件路径，如果取消则返回 null
  */
 export async function selectFile(): Promise<string | null> {
+  if (!isTauri())
+    return null
+
   try {
     const result = await open({
       directory: false,
@@ -156,6 +162,9 @@ export async function openBilibiliLogin(): Promise<void> {
  * @param entry 历史记录条目
  */
 export async function addToHistory(entry: HistoryEntry): Promise<void> {
+  if (!isTauri())
+    return
+
   try {
     await invoke('add_to_history', { entry })
   }
@@ -172,6 +181,9 @@ export async function addToHistory(entry: HistoryEntry): Promise<void> {
  * @returns 历史记录列表
  */
 export async function getHistory(page?: number, pageSize?: number): Promise<HistoryEntry[]> {
+  if (!isTauri())
+    return []
+
   try {
     return await invoke<HistoryEntry[]>('get_history', { page, pageSize })
   }
@@ -186,6 +198,9 @@ export async function getHistory(page?: number, pageSize?: number): Promise<Hist
  * @param entryId 条目 ID
  */
 export async function deleteHistoryEntry(entryId: string): Promise<void> {
+  if (!isTauri())
+    return
+
   try {
     await invoke('delete_history_entry', { entryId })
   }
@@ -199,6 +214,9 @@ export async function deleteHistoryEntry(entryId: string): Promise<void> {
  * 清空所有历史记录
  */
 export async function clearHistory(): Promise<void> {
+  if (!isTauri())
+    return
+
   try {
     await invoke('clear_history')
   }
@@ -368,6 +386,11 @@ export async function downloadCommentsToFile(
  * @param url 要打开的 URL
  */
 export async function openInBrowser(url: string): Promise<void> {
+  if (!isTauri()) {
+    window.open(url, '_blank', 'noopener,noreferrer')
+    return
+  }
+
   try {
     await openUrl(url)
   }

@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core'
+import { invoke, isTauri } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
@@ -12,6 +12,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Actions
   async function login() {
+    if (!isTauri())
+      return
+
     try {
       // Open login window
       await invoke('open_login_window')
@@ -32,6 +35,13 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function loadSessdata() {
+    if (!isTauri()) {
+      sessdata.value = null
+      isLoggedIn.value = false
+      isVip.value = false
+      return
+    }
+
     try {
       const result = await invoke<string | null>('get_sessdata')
       if (result) {
@@ -55,7 +65,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function validateAuth() {
-    if (!sessdata.value) {
+    if (!isTauri() || !sessdata.value) {
       isLoggedIn.value = false
       return false
     }
@@ -83,6 +93,13 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout() {
+    if (!isTauri()) {
+      sessdata.value = null
+      isLoggedIn.value = false
+      isVip.value = false
+      return
+    }
+
     try {
       await invoke('clear_auth')
       sessdata.value = null
@@ -96,7 +113,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function checkVipStatus() {
-    if (!sessdata.value) {
+    if (!isTauri() || !sessdata.value) {
       isVip.value = false
       return false
     }

@@ -1,6 +1,6 @@
 import type { UnlistenFn } from '@tauri-apps/api/event'
 import type { DownloadTask } from '@/types'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke, isTauri } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { onMounted, onUnmounted } from 'vue'
 import { useQueueStore } from '@/stores/queue'
@@ -11,6 +11,7 @@ import { useQueueStore } from '@/stores/queue'
  */
 export function useTaskPolling(intervalMs: number = 5000) {
   const queueStore = useQueueStore()
+  const runningInTauri = isTauri()
   let pollingTimer: number | null = null
   let unlistenProgress: UnlistenFn | null = null
 
@@ -105,6 +106,9 @@ export function useTaskPolling(intervalMs: number = 5000) {
 
   // 组件挂载时开始轮询和实时监听
   onMounted(() => {
+    if (!runningInTauri)
+      return
+
     setupRealtimeListener()
     startPolling()
   })

@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { isTauri } from '@tauri-apps/api/core'
 import { Folder, ShieldCheck, Zap } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import Button from '@/components/common/Button.vue'
@@ -13,13 +14,19 @@ import { useSettingsStore } from '@/stores/settings'
 
 const settingsStore = useSettingsStore()
 const authStore = useAuthStore()
-const { showSuccess, showError } = useToast()
+const { showSuccess, showError, showInfo } = useToast()
+const runningInTauri = isTauri()
 
 const localSettings = ref({ ...settingsStore.settings })
 const showLogoutConfirm = ref(false)
 const showResetConfirm = ref(false)
 
 async function handleSelectDownloadPath() {
+  if (!runningInTauri) {
+    showInfo('下载目录选择仅在桌面应用中可用')
+    return
+  }
+
   const path = await selectFolder()
   if (path) {
     localSettings.value.defaultDownloadPath = path
@@ -27,6 +34,11 @@ async function handleSelectDownloadPath() {
 }
 
 async function handleSelectYuttoPath() {
+  if (!runningInTauri) {
+    showInfo('Yutto 路径选择仅在桌面应用中可用')
+    return
+  }
+
   const path = await selectFile()
   if (path) {
     localSettings.value.yuttoCliPath = path
@@ -51,6 +63,11 @@ function confirmReset() {
 }
 
 async function handleLogin() {
+  if (!runningInTauri) {
+    showInfo('Bilibili 登录仅在桌面应用中可用')
+    return
+  }
+
   try {
     await authStore.login()
   }

@@ -1,11 +1,13 @@
 <script lang="ts" setup>
+import { isTauri } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { Minus, Square, X } from 'lucide-vue-next'
 import { storeToRefs } from 'pinia'
 import { computed, onMounted, ref } from 'vue'
 import { useTitleBarStore } from '@/stores/titleBar'
 
-const appWindow = getCurrentWindow()
+const runningInTauri = isTauri()
+const appWindow = runningInTauri ? getCurrentWindow() : null
 const isMaximized = ref(false)
 const titleBarStore = useTitleBarStore()
 const { branding } = storeToRefs(titleBarStore)
@@ -19,6 +21,9 @@ const showBranding = computed(() =>
 )
 
 onMounted(async () => {
+  if (!appWindow)
+    return
+
   isMaximized.value = await appWindow.isMaximized()
 
   // Listen for window resize events
@@ -28,15 +33,15 @@ onMounted(async () => {
 })
 
 async function minimizeWindow() {
-  await appWindow.minimize()
+  await appWindow?.minimize()
 }
 
 async function toggleMaximize() {
-  await appWindow.toggleMaximize()
+  await appWindow?.toggleMaximize()
 }
 
 async function closeWindow() {
-  await appWindow.close()
+  await appWindow?.close()
 }
 </script>
 
@@ -66,7 +71,7 @@ async function closeWindow() {
       </div>
 
       <!-- Window Controls -->
-      <div class="flex gap-0">
+      <div v-if="runningInTauri" class="flex gap-0">
         <button
           class="text-text-tertiary p-1 border-none bg-transparent flex h-10 w-12 cursor-pointer transition-colors items-center justify-center hover:text-text-secondary hover:bg-bg-tertiary"
           aria-label="Minimize"
