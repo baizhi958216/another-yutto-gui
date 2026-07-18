@@ -1,6 +1,7 @@
 <!-- Component ported from https://codepen.io/JuanFuentes/full/rgXKGQ -->
 
 <script setup lang="ts">
+import robotoFlexUrl from '@fontsource-variable/roboto-flex/files/roboto-flex-latin-full-normal.woff2?url'
 import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
 
 interface TextPressureProps {
@@ -23,8 +24,8 @@ interface TextPressureProps {
 
 const props = withDefaults(defineProps<TextPressureProps>(), {
   text: 'Yutto',
-  fontFamily: 'Compressa VF',
-  fontUrl: 'https://res.cloudinary.com/dr6lvwubh/raw/upload/v1529908256/CompressaPRO-GX.woff2',
+  fontFamily: 'Roboto Flex Variable',
+  fontUrl: robotoFlexUrl,
   width: true,
   weight: true,
   italic: true,
@@ -117,18 +118,14 @@ function animate() {
 
       const d = dist(mouseRef.value, charCenter)
 
-      const getAttr = (distance: number, minVal: number, maxVal: number) => {
-        const val = maxVal - Math.abs((maxVal * distance) / maxDist)
-        return Math.max(minVal, val + minVal)
-      }
-
-      const wdth = props.width ? Math.floor(getAttr(d, 5, 200)) : 100
-      const wght = props.weight ? Math.floor(getAttr(d, 100, 900)) : 400
-      const italVal = props.italic ? getAttr(d, 0, 1).toFixed(2) : '0'
-      const alphaVal = props.alpha ? getAttr(d, 0, 1).toFixed(2) : '1'
+      const pressure = Math.max(0, 1 - d / maxDist)
+      const wdth = props.width ? Math.round(25 + pressure * 126) : 100
+      const wght = props.weight ? Math.round(100 + pressure * 900) : 400
+      const slnt = props.italic ? (-10 * pressure).toFixed(2) : '0'
+      const alphaVal = props.alpha ? pressure.toFixed(2) : '1'
 
       span.style.opacity = alphaVal
-      span.style.fontVariationSettings = `'wght' ${wght}, 'wdth' ${wdth}, 'ital' ${italVal}`
+      span.style.fontVariationSettings = `'wght' ${wght}, 'wdth' ${wdth}, 'slnt' ${slnt}`
     })
   }
 
@@ -140,7 +137,10 @@ const dynamicStyles = computed(
   @font-face {
     font-family: '${props.fontFamily}';
     src: url('${props.fontUrl}');
-    font-style: normal;
+    font-style: oblique 0deg 10deg;
+    font-weight: 100 1000;
+    font-stretch: 25% 151%;
+    font-display: swap;
   }
   .stroke span {
     position: relative;
@@ -159,8 +159,10 @@ const dynamicStyles = computed(
 `,
 )
 
+let styleElement: HTMLStyleElement | undefined
+
 onMounted(() => {
-  const styleElement = document.createElement('style')
+  styleElement = document.createElement('style')
   styleElement.textContent = dynamicStyles.value
   document.head.appendChild(styleElement)
   styleElement.setAttribute('data-text-pressure', 'true')
@@ -183,8 +185,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  const styleElements = document.querySelectorAll('style[data-text-pressure="true"]')
-  styleElements.forEach(el => el.remove())
+  styleElement?.remove()
 
   window.removeEventListener('mousemove', handleMouseMove)
   window.removeEventListener('touchmove', handleTouchMove)

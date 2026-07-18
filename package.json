@@ -13,6 +13,7 @@
     "lint:fix": "eslint --fix"
   },
   "dependencies": {
+    "@fontsource-variable/roboto-flex": "^5.2.8",
     "@tauri-apps/api": "^2.9.1",
     "@tauri-apps/plugin-dialog": "^2.5.0",
     "@tauri-apps/plugin-fs": "^2.4.5",
