@@ -345,7 +345,7 @@ impl DownloadManager {
                 downloads_clone,
                 app_handle_clone,
             )
-            .await;
+            .await
         });
 
         // Wait for the process to complete
@@ -356,7 +356,7 @@ impl DownloadManager {
 
         // Wait for output processing to complete
         let _ = stdout_handle.await;
-        let _ = stderr_handle.await;
+        let stderr_lines = stderr_handle.await.unwrap_or_default();
 
         if status.success() {
             println!("[下载管理器] 视频下载完成: {}", task_id);
@@ -389,8 +389,27 @@ impl DownloadManager {
             }
             Ok(())
         } else {
-            println!("[下载管理器] 下载失败，退出码: {:?}", status.code());
-            Err(format!("下载失败，退出码: {:?}", status.code()))
+            let exit_code = status
+                .code()
+                .map(|code| code.to_string())
+                .unwrap_or_else(|| "未知".to_string());
+            let details = stderr_lines
+                .into_iter()
+                .rev()
+                .take(5)
+                .collect::<Vec<_>>()
+                .into_iter()
+                .rev()
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            let error = if details.is_empty() {
+                format!("下载失败，退出码: {}", exit_code)
+            } else {
+                format!("下载失败，退出码: {}\n{}", exit_code, details)
+            };
+            println!("[下载管理器] {}", error);
+            Err(error)
         }
     }
 

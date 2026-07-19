@@ -2,7 +2,7 @@ use crate::models::download::{DownloadConfig, DownloadTask};
 use crate::services::download_manager::json_parser::parse_progress_line;
 use crate::utils::format::{format_eta, format_speed};
 use regex::Regex;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use tauri::Emitter;
 use tokio::io::BufReader;
@@ -14,12 +14,13 @@ pub async fn process_output<R: tokio::io::AsyncRead + Unpin>(
     task_id: String,
     downloads: Arc<Mutex<HashMap<String, DownloadTask>>>,
     app_handle: tauri::AppHandle,
-) {
+) -> Vec<String> {
     use tokio::io::AsyncReadExt;
 
     let mut reader = reader;
     let mut buffer = vec![0u8; 4096];
     let mut line_buffer = String::new();
+    let mut recent_lines = VecDeque::with_capacity(12);
 
     // Regex patterns for parsing progress
     // Example from yutto: "77.86 MiB/110.21 MiB 56.30 MiB/s"
@@ -41,6 +42,13 @@ pub async fn process_output<R: tokio::io::AsyncRead + Unpin>(
                         if !line_buffer.is_empty() {
                             // Process the line
                             let line = line_buffer.trim();
+
+                            if !line.is_empty() {
+                                if recent_lines.len() == 12 {
+                                    recent_lines.pop_front();
+                                }
+                                recent_lines.push_back(line.chars().take(500).collect());
+                            }
 
                             // Try JSON parsing first
                             if let Some(parsed) = parse_progress_line(line) {
@@ -186,7 +194,12 @@ pub async fn process_output<R: tokio::io::AsyncRead + Unpin>(
                 }
             }
             Err(e) => {
-                println!("[yutto] 读取输出错误: {}", e);
+                let error = format!("读取输出错误: {}", e);
+                println!("[yutto] {}", error);
+                if recent_lines.len() == 12 {
+                    recent_lines.pop_front();
+                }
+                recent_lines.push_back(error);
                 break;
             }
         }
@@ -194,8 +207,17 @@ pub async fn process_output<R: tokio::io::AsyncRead + Unpin>(
 
     // Process any remaining content
     if !line_buffer.is_empty() {
-        println!("[yutto] {}", line_buffer.trim());
+        let line = line_buffer.trim();
+        println!("[yutto] {}", line);
+        if !line.is_empty() {
+            if recent_lines.len() == 12 {
+                recent_lines.pop_front();
+            }
+            recent_lines.push_back(line.chars().take(500).collect());
+        }
     }
+
+    recent_lines.into_iter().collect()
 }
 
 /// Download comments for a completed video task
