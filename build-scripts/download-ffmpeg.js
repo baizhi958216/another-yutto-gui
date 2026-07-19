@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable node/prefer-global/process */
 
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { chmodSync, createWriteStream, existsSync, mkdirSync, renameSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { pipeline } from 'node:stream/promises'
@@ -140,10 +140,21 @@ async function extractZip(archivePath, targetFile, outputPath) {
 async function downloadAndExtractFFmpeg(platform) {
   const outputPath = join(BINARIES_DIR, platform.targetName)
 
-  // Skip if already exists
+  // Reuse only a binary that can actually run on this machine. This rejects
+  // Homebrew copies whose dylib dependencies are not portable to another Mac.
   if (existsSync(outputPath)) {
-    console.log(`${platform.targetName} already exists, skipping...`)
-    return
+    const validation = spawnSync(outputPath, ['-version'], {
+      encoding: 'utf8',
+      timeout: 10_000,
+    })
+
+    if (!validation.error && validation.status === 0) {
+      console.log(`${platform.targetName} already exists and is valid, skipping...`)
+      return
+    }
+
+    console.warn(`${platform.targetName} exists but cannot run; downloading a portable replacement...`)
+    rmSync(outputPath, { force: true })
   }
 
   try {
@@ -208,14 +219,8 @@ async function main() {
   }
 
   // Download and extract only the binary needed by the current runner.
-  for (const platform of currentPlatforms) {
-    try {
-      await downloadAndExtractFFmpeg(platform)
-    }
-    catch (error) {
-      console.error(`Failed to process ${platform.targetName}, continuing...`)
-    }
-  }
+  for (const platform of currentPlatforms)
+    await downloadAndExtractFFmpeg(platform)
 
   console.log('\n✓ FFmpeg download complete!')
 }

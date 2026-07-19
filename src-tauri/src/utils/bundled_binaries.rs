@@ -5,7 +5,18 @@
 use std::path::PathBuf;
 use tauri::Manager;
 
+#[cfg(target_os = "windows")]
+fn get_packaged_binary_name(base_name: &str) -> String {
+    format!("{}.exe", base_name)
+}
+
+#[cfg(not(target_os = "windows"))]
+fn get_packaged_binary_name(base_name: &str) -> String {
+    base_name.to_string()
+}
+
 /// 获取平台特定的二进制文件名
+#[cfg(debug_assertions)]
 fn get_platform_binary_name(base_name: &str) -> String {
     #[cfg(target_os = "windows")]
     {
@@ -36,6 +47,68 @@ fn get_platform_binary_name(base_name: &str) -> String {
     base_name.to_string()
 }
 
+fn get_bundled_binary_path(app_handle: &tauri::AppHandle, base_name: &str) -> Option<PathBuf> {
+    let packaged_name = get_packaged_binary_name(base_name);
+
+    if let Ok(current_exe) = std::env::current_exe() {
+        if let Some(executable_dir) = current_exe.parent() {
+            let executable_path = executable_dir.join(&packaged_name);
+            eprintln!(
+                "[bundled_binaries] 尝试主程序同目录的 {}: {:?}",
+                base_name, executable_path
+            );
+
+            if executable_path.exists() {
+                eprintln!("[bundled_binaries] 找到打包的 {}", base_name);
+                return Some(executable_path);
+            }
+        }
+    }
+
+    if let Ok(resource_path) = app_handle
+        .path()
+        .resolve(&packaged_name, tauri::path::BaseDirectory::Resource)
+    {
+        eprintln!(
+            "[bundled_binaries] 尝试资源目录中的 {}: {:?}",
+            base_name, resource_path
+        );
+
+        if resource_path.exists() {
+            eprintln!("[bundled_binaries] 找到打包的 {}", base_name);
+            return Some(resource_path);
+        }
+    }
+
+    #[cfg(debug_assertions)]
+    {
+        let platform_name = get_platform_binary_name(base_name);
+        if let Ok(current_dir) = std::env::current_dir() {
+            for binaries_dir in [
+                current_dir.join("binaries"),
+                current_dir
+                    .parent()
+                    .map(|parent| parent.join("binaries"))
+                    .unwrap_or_default(),
+            ] {
+                let dev_path = binaries_dir.join(&platform_name);
+                eprintln!(
+                    "[bundled_binaries] 尝试开发模式的 {}: {:?}",
+                    base_name, dev_path
+                );
+
+                if dev_path.exists() {
+                    eprintln!("[bundled_binaries] 找到开发模式的 {}", base_name);
+                    return Some(dev_path);
+                }
+            }
+        }
+    }
+
+    eprintln!("[bundled_binaries] 未找到打包的 {}", base_name);
+    None
+}
+
 /// 获取打包的 yutto 可执行文件路径
 ///
 /// 返回打包在应用中的 yutto 二进制文件的完整路径。
@@ -47,58 +120,7 @@ pub fn get_bundled_yutto_path(app_handle: &tauri::AppHandle) -> Option<PathBuf> 
     // - macOS Apple Silicon: binaries/yutto-aarch64-apple-darwin
     // - Linux: binaries/yutto-x86_64-unknown-linux-gnu
 
-    let resource_path = app_handle
-        .path()
-        .resolve("yutto", tauri::path::BaseDirectory::Resource)
-        .ok()?;
-
-    eprintln!(
-        "[bundled_binaries] 尝试使用打包的 yutto: {:?}",
-        resource_path
-    );
-
-    if resource_path.exists() {
-        eprintln!("[bundled_binaries] 找到打包的 yutto");
-        return Some(resource_path);
-    }
-
-    eprintln!("[bundled_binaries] 未找到打包的 yutto，尝试开发模式路径");
-
-    // 开发模式回退：尝试从项目根目录的 binaries 文件夹加载
-    #[cfg(debug_assertions)]
-    {
-        let dev_path = std::env::current_dir()
-            .ok()?
-            .join("binaries")
-            .join(get_platform_binary_name("yutto"));
-
-        eprintln!("[bundled_binaries] 尝试开发模式路径: {:?}", dev_path);
-
-        if dev_path.exists() {
-            eprintln!("[bundled_binaries] 找到开发模式的 yutto");
-            return Some(dev_path);
-        }
-
-        // 如果当前目录不对，尝试从 src-tauri 的父目录查找
-        let parent_dev_path = std::env::current_dir()
-            .ok()?
-            .parent()?
-            .join("binaries")
-            .join(get_platform_binary_name("yutto"));
-
-        eprintln!(
-            "[bundled_binaries] 尝试父目录开发模式路径: {:?}",
-            parent_dev_path
-        );
-
-        if parent_dev_path.exists() {
-            eprintln!("[bundled_binaries] 找到父目录开发模式的 yutto");
-            return Some(parent_dev_path);
-        }
-    }
-
-    eprintln!("[bundled_binaries] 未找到打包的 yutto");
-    None
+    get_bundled_binary_path(app_handle, "yutto")
 }
 
 /// 获取打包的 ffmpeg 可执行文件路径
@@ -106,58 +128,7 @@ pub fn get_bundled_yutto_path(app_handle: &tauri::AppHandle) -> Option<PathBuf> 
 /// 返回打包在应用中的 ffmpeg 二进制文件的完整路径。
 /// 如果文件不存在，返回 None。
 pub fn get_bundled_ffmpeg_path(app_handle: &tauri::AppHandle) -> Option<PathBuf> {
-    let resource_path = app_handle
-        .path()
-        .resolve("ffmpeg", tauri::path::BaseDirectory::Resource)
-        .ok()?;
-
-    eprintln!(
-        "[bundled_binaries] 尝试使用打包的 ffmpeg: {:?}",
-        resource_path
-    );
-
-    if resource_path.exists() {
-        eprintln!("[bundled_binaries] 找到打包的 ffmpeg");
-        return Some(resource_path);
-    }
-
-    eprintln!("[bundled_binaries] 未找到打包的 ffmpeg，尝试开发模式路径");
-
-    // 开发模式回退：尝试从项目根目录的 binaries 文件夹加载
-    #[cfg(debug_assertions)]
-    {
-        let dev_path = std::env::current_dir()
-            .ok()?
-            .join("binaries")
-            .join(get_platform_binary_name("ffmpeg"));
-
-        eprintln!("[bundled_binaries] 尝试开发模式路径: {:?}", dev_path);
-
-        if dev_path.exists() {
-            eprintln!("[bundled_binaries] 找到开发模式的 ffmpeg");
-            return Some(dev_path);
-        }
-
-        // 如果当前目录不对，尝试从 src-tauri 的父目录查找
-        let parent_dev_path = std::env::current_dir()
-            .ok()?
-            .parent()?
-            .join("binaries")
-            .join(get_platform_binary_name("ffmpeg"));
-
-        eprintln!(
-            "[bundled_binaries] 尝试父目录开发模式路径: {:?}",
-            parent_dev_path
-        );
-
-        if parent_dev_path.exists() {
-            eprintln!("[bundled_binaries] 找到父目录开发模式的 ffmpeg");
-            return Some(parent_dev_path);
-        }
-    }
-
-    eprintln!("[bundled_binaries] 未找到打包的 ffmpeg");
-    None
+    get_bundled_binary_path(app_handle, "ffmpeg")
 }
 
 /// 获取 yutto 命令路径（带回退机制）

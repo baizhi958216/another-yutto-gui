@@ -45,7 +45,8 @@
       "../binaries/ffmpeg"
     ],
     "macOS": {
-      "signingIdentity": "-"
+      "signingIdentity": "-",
+      "entitlements": "Entitlements.plist"
     }
   }
 }
